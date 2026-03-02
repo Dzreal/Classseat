@@ -6,8 +6,8 @@
 <title>班级排座位系统</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/default.min.css">
-<script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/index.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/mobile-drag-drop@2.3.0/default.min.css">
+<script src="https://unpkg.com/mobile-drag-drop@2.3.0/index.min.js"></script>
 
 <style>
     body { 
@@ -22,7 +22,7 @@
         display: flex;
         gap: 30px;
         align-items: flex-start;
-        flex-wrap: wrap; /* 兼容小屏幕折行 */
+        flex-wrap: wrap; /* 兼容手机端小屏幕折行 */
     }
 
     /* 左侧：设置面板和名单 */
@@ -272,7 +272,6 @@
     }
     .seat.deleted:hover::after { display: block; }
 
-
     /* 底部控制区 */
     .bottom-area {
         width: 100%;
@@ -314,7 +313,7 @@
     .save-group { display: flex; align-items: center; background-color: #e8f5e9; padding: 5px; border-radius: 6px; border: 1px solid #c8e6c9; }
     .save-group select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; outline: none; }
 
-    /* GitHub 云同步专属区域 */
+    /* 云同步专属区域 */
     .github-sync-area {
         width: 100%;
         max-width: 800px;
@@ -334,6 +333,7 @@
         align-items: center;
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap;
     }
     .github-sync-area input[type="password"] {
         padding: 8px;
@@ -342,6 +342,7 @@
         background: #333;
         color: white;
         width: 300px;
+        max-width: 90%;
     }
     .btn-github-save { background-color: #2ea043; }
     .btn-github-load { background-color: #0366d6; }
@@ -361,14 +362,14 @@
         user-select: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         transition: transform 0.1s;
-        touch-action: none; /* === 新增：防手机默认滑动 === */
+        touch-action: none; /* 防手机默认滑动 */
     }
     .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
 
     /* 拖拽学生卡片样式 */
     .student { 
         width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2;
-        touch-action: none; /* === 新增：防手机默认滑动 === */
+        touch-action: none; /* 防手机默认滑动 */
     }
     .student.boy { background-color: #64b5f6; color: white; border: 1px solid #1e88e5; }
     .student.girl { background-color: #f06292; color: white; border: 1px solid #d81b60; }
@@ -377,7 +378,7 @@
 
     /* 自定义组框样式 */
     .custom-box { position: absolute; border: 4px dashed; pointer-events: none; z-index: 5; border-radius: 8px; transition: border-color 0.2s, background-color 0.2s; }
-    .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; touch-action: none; /* === 新增：防手机默认滑动 === */ }
+    .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; touch-action: none; }
     .custom-box .handle.top { top: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
     .custom-box .handle.bottom { bottom: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
     .custom-box .handle.left { top: 50%; left: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
@@ -389,7 +390,7 @@
     /* 框体的整体移动按钮 */
     .custom-box .move-btn {
         position: absolute; top: -12px; left: -12px; width: 22px; height: 22px; background: #2196F3; color: white; border-radius: 50%; text-align: center; line-height: 20px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
-        touch-action: none; /* === 新增：防手机默认滑动 === */
+        touch-action: none;
     }
     .custom-box .move-btn:hover { background: #1976D2; }
 
@@ -489,11 +490,11 @@
             </div>
 
             <div class="github-sync-area">
-                <div style="font-size: 14px; font-weight: bold;">☁️ GitHub 云端同步 (私密保存，仅限帅哥使用)</div>
+                <div style="font-size: 14px; font-weight: bold;">☁️ 云端同步 (私密保存，仅限帅哥使用)</div>
                 <div class="github-sync-row">
-                    <input type="password" id="github-token" placeholder="输入 GitHub Personal Access Token" onchange="saveTokenLocally()">
-                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 一键保存至 GitHub</button>
-                    <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 从 GitHub 读取</button>
+                    <input type="password" id="github-token" placeholder="输入云端同步 Token (私钥)" onchange="saveTokenLocally()">
+                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 一键保存至云端</button>
+                    <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 从云端读取</button>
                 </div>
                 <div style="font-size: 12px; color: #aaa;">Token 仅保存在你当前电脑本地，数据将安全加密传输至私有仓库。</div>
             </div>
@@ -506,15 +507,26 @@
 </div>
 
 <script>
-    // === 新增：配置手机端原生拖拽支持 (Polyfill) ===
-    MobileDragDrop.polyfill({
-        holdToDrag: 100 // 长按100毫秒后才开始拖动，防止误触导致页面无法滑动
-    });
-    // 防止手机端拖拽时整个网页跟着滚动
-    window.addEventListener('touchmove', function() {}, {passive: false});
+    // === 手机端拖拽兼容（增加保护，防止无网络时阻塞整个脚本） ===
+    try {
+        if (typeof MobileDragDrop !== 'undefined') {
+            MobileDragDrop.polyfill({
+                holdToDrag: 100 // 长按100毫秒触发，防误触
+            });
+        }
+    } catch(err) {
+        console.warn('手机拖拽辅助库未加载。');
+    }
 
+    // === 变量声明（严格避免重复声明） ===
     let studentsData = [];
     let isMirrored = false; 
+    let customBoxes = [];
+    let colorIndexTracker = 0;
+    
+    let draggedElement = null;
+    let activeBox = null, activeHandle = null, startX, startY, startRect;
+    let moveActiveBox = null, moveStartX, moveStartY, moveStartRect;
 
     const subgroupColors = [
         '#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', 
@@ -526,11 +538,6 @@
     const classroom = document.getElementById('classroom');
     const poolBoys = document.getElementById('pool-boys');
     const poolGirls = document.getElementById('pool-girls');
-
-    let customBoxes = [];
-    let colorIndexTracker = 0;
-    let draggedElement = null;
-    let activeBox = null, activeHandle = null, startX, startY, startRect;
 
     // === GitHub 同步参数配置 ===
     const GITHUB_OWNER = 'Dzreal'; 
@@ -580,7 +587,7 @@
 
     async function saveToGitHubCloud() {
         let token = document.getElementById('github-token').value.trim();
-        if (!token) { alert('⚠️ 请先输入 GitHub Token！'); return; }
+        if (!token) { alert('⚠️ 请先输入 Token！'); return; }
 
         saveTokenLocally();
 
@@ -631,21 +638,21 @@
             });
 
             if (response.ok) {
-                alert('✅ 成功保存至私有云端仓库 (Classseat-Data)！');
+                alert('✅ 成功保存至云端私有仓库！');
             } else {
                 let errData = await response.json();
-                alert('❌ 保存失败：' + (errData.message || '确保已经创建了名为 Classseat-Data 的私有仓库，且Token有 repo 权限'));
+                alert('❌ 保存失败：' + (errData.message || '请确保Token填写正确，且拥有写入私有仓库的权限。'));
             }
         } catch (e) {
-            alert('网络错误：无法连接到 GitHub API');
+            alert('网络错误：无法连接到云端。如果你在国内，通常是因为网络拦截了接口 (api.github.com)，建议开启加速器后重试。\n详细报错：' + e.message);
         } finally {
-            document.querySelector('.btn-github-save').innerText = '☁️ 一键保存至 GitHub';
+            document.querySelector('.btn-github-save').innerText = '☁️ 一键保存至云端';
         }
     }
 
     async function loadFromGitHubCloud() {
         let token = document.getElementById('github-token').value.trim();
-        if (!token) { alert('⚠️ 请先输入 GitHub Token！'); return; }
+        if (!token) { alert('⚠️ 请先输入 Token！'); return; }
         
         saveTokenLocally();
 
@@ -661,14 +668,14 @@
                 let jsonString = decodeBase64ToUTF8(data.content);
                 let importedData = JSON.parse(jsonString);
                 applyImportedData(importedData); 
-                alert('✅ 已从私有云端读取并完美还原排座！');
+                alert('✅ 已从云端读取并完美还原排座！');
             } else {
-                alert('❌ 读取失败，可能是云端还没有保存过数据，或者私有仓库没有初始化成功。');
+                alert('❌ 读取失败，可能是云端还没有保存过数据，或者私有仓库名字没有对应上。');
             }
         } catch (e) {
-            alert('网络错误：无法读取云端数据');
+            alert('网络错误：无法连接到云端。如果你在国内，通常是因为网络拦截了接口 (api.github.com)，建议开启加速器后重试。\n详细报错：' + e.message);
         } finally {
-            document.querySelector('.btn-github-load').innerText = '☁️ 从 GitHub 读取';
+            document.querySelector('.btn-github-load').innerText = '☁️ 从云端读取';
         }
     }
 
@@ -1175,7 +1182,7 @@
         let moveBtn = document.createElement('div');
         moveBtn.className = 'move-btn';
         moveBtn.innerText = '✥';
-        // === 新增：兼容双端移动事件 ===
+        // 绑定双端移动事件
         moveBtn.onmousedown = function(e) { startMoveBox(e, boxObj); };
         moveBtn.ontouchstart = function(e) { startMoveBox(e, boxObj); };
         boxContainer.appendChild(moveBtn);
@@ -1193,7 +1200,7 @@
             let handle = document.createElement('div');
             handle.className = 'handle ' + pos;
             handle.style.borderColor = color;
-            // === 新增：兼容双端拉伸事件 ===
+            // 绑定双端拉伸事件
             handle.onmousedown = function(e) { startResize(e, boxObj, pos); };
             handle.ontouchstart = function(e) { startResize(e, boxObj, pos); };
             boxContainer.appendChild(handle);
@@ -1233,7 +1240,7 @@
 
     window.addEventListener('resize', () => customBoxes.forEach(b => b.updateLayout()));
 
-    // === 新增：全面兼容手机 e.touches 的事件追踪 ===
+    // === 兼容双端操作的统一追踪逻辑 ===
     function startResize(e, box, pos) {
         e.preventDefault(); e.stopPropagation();
         activeBox = box; activeHandle = pos;
@@ -1249,7 +1256,7 @@
 
     function onBoxMouseMove(e) {
         if (!activeBox) return;
-        if (e.type === 'touchmove') e.preventDefault(); // 防止手机滑动页面
+        if (e.type === 'touchmove' && e.cancelable) e.preventDefault(); 
         
         let clientX = e.touches ? e.touches[0].clientX : e.clientX;
         let clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1268,9 +1275,6 @@
         activeBox.el.style.height = (newBottom - newTop) + 'px';
     }
 
-    let moveActiveBox = null;
-    let moveStartX, moveStartY, moveStartRect;
-
     function startMoveBox(e, box) {
         e.preventDefault(); e.stopPropagation();
         moveActiveBox = box;
@@ -1286,7 +1290,7 @@
 
     function onMoveBoxMove(e) {
         if (!moveActiveBox) return;
-        if (e.type === 'touchmove') e.preventDefault(); // 防止手机滑动页面
+        if (e.type === 'touchmove' && e.cancelable) e.preventDefault();
         
         let clientX = e.touches ? e.touches[0].clientX : e.clientX;
         let clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -1322,7 +1326,6 @@
             moveActiveBox = null;
         }
     }
-    // === 结束：全面兼容手机 e.touches 的事件追踪 ===
 
     function recalculateBoxSeats(boxTarget) {
         let visualRect = boxTarget.el.getBoundingClientRect();
