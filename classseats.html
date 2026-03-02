@@ -2,13 +2,20 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>班级排座位系统</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mobile-drag-drop/3.0.0-rc.0/default.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mobile-drag-drop/3.0.0-rc.0/index.min.js"></script>
+
 <style>
     body { 
         font-family: 'Microsoft YaHei', sans-serif; 
         margin: 20px; 
         background-color: #f4f6f9;
+        /* 防止手机端长按选中文字干扰拖拽 */
+        -webkit-user-select: none;
+        user-select: none;
     }
     h1 { text-align: center; color: #333; margin-bottom: 30px; }
     
@@ -17,6 +24,8 @@
         display: flex;
         gap: 30px;
         align-items: flex-start;
+        /* 适配手机端，如果屏幕小则自动换行 */
+        flex-wrap: wrap; 
     }
 
     /* 左侧：设置面板和名单 */
@@ -26,6 +35,8 @@
         display: flex;
         flex-direction: column;
         gap: 15px;
+        /* 手机端占满全宽 */
+        max-width: 100%;
     }
 
     .setup-box, .list-box {
@@ -146,6 +157,9 @@
         border-radius: 8px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         position: relative;
+        overflow-x: auto; /* 防止手机端被撑爆 */
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .blackboard {
@@ -173,7 +187,7 @@
     }
     .instruction-tip b { color: #d32f2f; }
 
-    /* 班级整体容器包裹 (用于讲台与座位的上下颠倒) */
+    /* 班级整体容器包裹 */
     #classroom-wrapper {
         display: flex;
         flex-direction: column;
@@ -230,7 +244,7 @@
         background-color: transparent;
     }
     
-    /* === 座位样式与隐藏（伪删除）样式 === */
+    /* === 座位样式 === */
     .seat { 
         width: 66px; 
         height: 40px; 
@@ -264,7 +278,6 @@
         display: none;
     }
     .seat.deleted:hover::after { display: block; }
-
 
     /* 底部控制区 */
     .bottom-area {
@@ -320,6 +333,7 @@
         gap: 10px;
         align-items: center;
         margin-top: 10px;
+        box-sizing: border-box;
     }
     .github-sync-row {
         display: flex;
@@ -327,6 +341,7 @@
         align-items: center;
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap; /* 手机端换行 */
     }
     .github-sync-area input[type="password"] {
         padding: 8px;
@@ -334,12 +349,14 @@
         border: 1px solid #555;
         background: #333;
         color: white;
-        width: 300px;
+        width: 100%;
+        max-width: 300px;
+        box-sizing: border-box;
     }
     .btn-github-save { background-color: #2ea043; }
     .btn-github-load { background-color: #0366d6; }
 
-    /* 右下角添加新框工具 */
+    /* 右下角添加新框工具 - 关键：加入 touch-action: none 防止移动端拖拽冲突 */
     .rect-tool {
         position: absolute;
         right: 0;
@@ -351,15 +368,16 @@
         border-radius: 6px;
         cursor: grab;
         border: 2px dashed #e1bee7;
-        user-select: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         transition: transform 0.1s;
+        touch-action: none; 
     }
     .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
 
-    /* 拖拽学生卡片样式 */
+    /* 拖拽学生卡片样式 - 关键：加入 touch-action: none 防止移动端拖拽冲突 */
     .student { 
-        width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2;
+        width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2;
+        touch-action: none; 
     }
     .student.boy { background-color: #64b5f6; color: white; border: 1px solid #1e88e5; }
     .student.girl { background-color: #f06292; color: white; border: 1px solid #d81b60; }
@@ -368,7 +386,7 @@
 
     /* 自定义组框样式 */
     .custom-box { position: absolute; border: 4px dashed; pointer-events: none; z-index: 5; border-radius: 8px; transition: border-color 0.2s, background-color 0.2s; }
-    .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; }
+    .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; touch-action: none; }
     .custom-box .handle.top { top: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
     .custom-box .handle.bottom { bottom: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
     .custom-box .handle.left { top: 50%; left: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
@@ -379,7 +397,7 @@
 
     /* 框体的整体移动按钮 */
     .custom-box .move-btn {
-        position: absolute; top: -12px; left: -12px; width: 22px; height: 22px; background: #2196F3; color: white; border-radius: 50%; text-align: center; line-height: 20px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
+        position: absolute; top: -12px; left: -12px; width: 22px; height: 22px; background: #2196F3; color: white; border-radius: 50%; text-align: center; line-height: 20px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; touch-action: none;
     }
     .custom-box .move-btn:hover { background: #1976D2; }
 
@@ -479,11 +497,11 @@
             </div>
 
             <div class="github-sync-area">
-                <div style="font-size: 14px; font-weight: bold;">☁️ 云端同步 (私密保存，仅限帅哥使用)</div>
+                <div style="font-size: 14px; font-weight: bold;">☁️ GitHub 云端同步 (私密保存，仅限帅哥使用)</div>
                 <div class="github-sync-row">
-                    <input type="password" id="github-token" placeholder="输入 Personal Access Token" onchange="saveTokenLocally()">
-                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 保存云端</button>
-                    <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 云端读取</button>
+                    <input type="password" id="github-token" placeholder="输入 GitHub Personal Access Token" onchange="saveTokenLocally()">
+                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 一键保存至 GitHub</button>
+                    <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 从 GitHub 读取</button>
                 </div>
                 <div style="font-size: 12px; color: #aaa;">Token 仅保存在你当前电脑本地，数据将安全加密传输至私有仓库。</div>
             </div>
@@ -496,6 +514,14 @@
 </div>
 
 <script>
+    // === 新增：激活移动端拖拽支持 ===
+    MobileDragDrop.polyfill({
+        // 允许拖拽到屏幕边缘时自动滚动页面
+        dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+    });
+    // 防止 iOS Safari 在拖拽时页面跟着乱滑
+    window.addEventListener('touchmove', function() {}, {passive: false});
+
     let studentsData = [];
     let isMirrored = false; 
 
@@ -515,13 +541,10 @@
     let draggedElement = null;
     let activeBox = null, activeHandle = null, startX, startY, startRect;
 
-    // === 新增：GitHub 同步参数配置 ===
-    // 这里将仓库指向了新建的私有仓库 Classseat-Data，实现彻底分离保密！
     const GITHUB_OWNER = 'Dzreal'; 
     const GITHUB_REPO = 'Classseat-Data'; 
     const GITHUB_FILE_PATH = 'seat_data.json'; 
 
-    // 初始化时尝试从本地加载 Token
     window.onload = function() {
         let savedToken = localStorage.getItem('github_sync_token');
         if(savedToken) {
@@ -536,7 +559,6 @@
         }
     }
 
-    // 处理包含中文的 Base64 编码
     function encodeUTF8ToBase64(str) {
         return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
             function toSolidBytes(match, p1) {
@@ -544,14 +566,12 @@
         }));
     }
 
-    // 处理包含中文的 Base64 解码
     function decodeBase64ToUTF8(str) {
         return decodeURIComponent(atob(str).split('').map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
     }
 
-    // 获取当前 GitHub 上文件的 SHA 值（更新文件时必须提供）
     async function getGitHubFileSha(token) {
         let url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
         try {
@@ -566,7 +586,6 @@
         } catch (e) { return null; }
     }
 
-    // 一键保存到 GitHub
     async function saveToGitHubCloud() {
         let token = document.getElementById('github-token').value.trim();
         if (!token) { alert('⚠️ 请先输入 GitHub Token！'); return; }
@@ -575,7 +594,6 @@
 
         if (studentsData.length === 0) { alert('当前没有数据可保存！'); return; }
 
-        // 收集当前排座数据
         let exportData = {
             studentsData: studentsData,
             config: {
@@ -608,7 +626,7 @@
                 message: "Cloud save seat data to Private Repo",
                 content: base64Content
             };
-            if (sha) bodyData.sha = sha; // 如果文件已存在，必须带上原来的 sha
+            if (sha) bodyData.sha = sha; 
 
             let response = await fetch(url, {
                 method: 'PUT',
@@ -633,7 +651,6 @@
         }
     }
 
-    // 从 GitHub 读取数据
     async function loadFromGitHubCloud() {
         let token = document.getElementById('github-token').value.trim();
         if (!token) { alert('⚠️ 请先输入 GitHub Token！'); return; }
@@ -651,7 +668,7 @@
                 let data = await response.json();
                 let jsonString = decodeBase64ToUTF8(data.content);
                 let importedData = JSON.parse(jsonString);
-                applyImportedData(importedData); // 调用我们提出来的通用还原函数
+                applyImportedData(importedData); 
                 alert('✅ 已从私有云端读取并完美还原排座！');
             } else {
                 alert('❌ 读取失败，可能是云端还没有保存过数据，或者私有仓库没有初始化成功。');
@@ -663,7 +680,6 @@
         }
     }
 
-    // === 将原先本地导入文件的逻辑提取成独立函数，供云端读取调用 ===
     function applyImportedData(importedData) {
         if(importedData.studentsData) {
             studentsData = importedData.studentsData;
@@ -713,7 +729,6 @@
         }
     }
 
-    // --- 以下是原有的逻辑，保持不变 ---
     document.getElementById('file-upload').addEventListener('change', function(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -1168,7 +1183,9 @@
         let moveBtn = document.createElement('div');
         moveBtn.className = 'move-btn';
         moveBtn.innerText = '✥';
+        // 兼容电脑鼠标和手机触摸
         moveBtn.onmousedown = function(e) { startMoveBox(e, boxObj); };
+        moveBtn.ontouchstart = function(e) { startMoveBox(e, boxObj); };
         boxContainer.appendChild(moveBtn);
 
         let closeBtn = document.createElement('div');
@@ -1184,7 +1201,9 @@
             let handle = document.createElement('div');
             handle.className = 'handle ' + pos;
             handle.style.borderColor = color;
+            // 兼容电脑鼠标和手机触摸
             handle.onmousedown = function(e) { startResize(e, boxObj, pos); };
+            handle.ontouchstart = function(e) { startResize(e, boxObj, pos); };
             boxContainer.appendChild(handle);
         });
         
@@ -1225,15 +1244,27 @@
     function startResize(e, box, pos) {
         e.preventDefault(); e.stopPropagation();
         activeBox = box; activeHandle = pos;
-        startX = e.clientX; startY = e.clientY;
+        
+        // 判断是触摸还是鼠标点击，获取正确的坐标
+        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
         startRect = box.el.getBoundingClientRect();
+        
         document.addEventListener('mousemove', onBoxMouseMove);
         document.addEventListener('mouseup', onBoxMouseUp);
+        document.addEventListener('touchmove', onBoxMouseMove, {passive: false});
+        document.addEventListener('touchend', onBoxMouseUp);
     }
 
     function onBoxMouseMove(e) {
         if (!activeBox) return;
-        let deltaX = e.clientX - startX, deltaY = e.clientY - startY;
+        if (e.type.includes('touch')) e.preventDefault(); // 阻止手机端滑动屏幕
+
+        let currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        let currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+        let deltaX = currentX - startX, deltaY = currentY - startY;
         let classroomRect = classroom.getBoundingClientRect();
         let newTop = startRect.top, newBottom = startRect.bottom, newLeft = startRect.left, newRight = startRect.right;
         
@@ -1248,22 +1279,45 @@
         activeBox.el.style.height = (newBottom - newTop) + 'px';
     }
 
+    function onBoxMouseUp(e) {
+        document.removeEventListener('mousemove', onBoxMouseMove);
+        document.removeEventListener('mouseup', onBoxMouseUp);
+        document.removeEventListener('touchmove', onBoxMouseMove);
+        document.removeEventListener('touchend', onBoxMouseUp);
+
+        if (activeBox) {
+            recalculateBoxSeats(activeBox);
+            activeBox = null; activeHandle = null;
+        }
+    }
+
     let moveActiveBox = null;
     let moveStartX, moveStartY, moveStartRect;
 
     function startMoveBox(e, box) {
         e.preventDefault(); e.stopPropagation();
         moveActiveBox = box;
-        moveStartX = e.clientX; moveStartY = e.clientY;
+        
+        moveStartX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        moveStartY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+        
         moveStartRect = box.el.getBoundingClientRect();
+        
         document.addEventListener('mousemove', onMoveBoxMove);
         document.addEventListener('mouseup', onMoveBoxUp);
+        document.addEventListener('touchmove', onMoveBoxMove, {passive: false});
+        document.addEventListener('touchend', onMoveBoxUp);
     }
 
     function onMoveBoxMove(e) {
         if (!moveActiveBox) return;
-        let deltaX = e.clientX - moveStartX;
-        let deltaY = e.clientY - moveStartY;
+        if (e.type.includes('touch')) e.preventDefault(); // 阻止手机端滑动屏幕
+
+        let currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        let currentY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+        let deltaX = currentX - moveStartX;
+        let deltaY = currentY - moveStartY;
         let classroomRect = classroom.getBoundingClientRect();
 
         let newTop = moveStartRect.top + deltaY;
@@ -1273,18 +1327,12 @@
         moveActiveBox.el.style.left = (newLeft - classroomRect.left) + 'px';
     }
 
-    function onBoxMouseUp(e) {
-        document.removeEventListener('mousemove', onBoxMouseMove);
-        document.removeEventListener('mouseup', onBoxMouseUp);
-        if (activeBox) {
-            recalculateBoxSeats(activeBox);
-            activeBox = null; activeHandle = null;
-        }
-    }
-    
     function onMoveBoxUp(e) {
         document.removeEventListener('mousemove', onMoveBoxMove);
         document.removeEventListener('mouseup', onMoveBoxUp);
+        document.removeEventListener('touchmove', onMoveBoxMove);
+        document.removeEventListener('touchend', onMoveBoxUp);
+
         if (moveActiveBox) {
             recalculateBoxSeats(moveActiveBox);
             moveActiveBox = null;
@@ -1437,4 +1485,3 @@
 
 </body>
 </html>
-
