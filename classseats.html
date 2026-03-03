@@ -6,6 +6,9 @@
 <title>班级排座位系统</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+<link rel="stylesheet" href="https://unpkg.com/mobile-drag-drop@2.3.0/default.min.css">
+<script src="https://unpkg.com/mobile-drag-drop@2.3.0/index.min.js"></script>
+
 <style>
     body { 
         font-family: 'Microsoft YaHei', sans-serif; 
@@ -20,8 +23,10 @@
         display: flex;
         gap: 30px;
         align-items: flex-start;
+        flex-wrap: wrap; /* 兼容手机端小屏幕折行 */
     }
 
+    /* 左侧：设置面板和名单 */
     .left-panel {
         width: 340px;
         flex-shrink: 0;
@@ -116,7 +121,7 @@
     .rect-tool { position: absolute; right: 0; top: 20px; padding: 10px 20px; background: #9c27b0; color: #fff; font-weight: bold; border-radius: 6px; cursor: grab; border: 2px dashed #e1bee7; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; touch-action: none; }
     .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
 
-    .student { width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2; }
+    .student { width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2; touch-action: none; }
     .student.boy { background-color: #64b5f6; color: white; border: 1px solid #1e88e5; }
     .student.girl { background-color: #f06292; color: white; border: 1px solid #d81b60; }
     .student:active { cursor: grabbing; }
@@ -134,19 +139,19 @@
     .custom-box .move-btn:hover { background: #1976D2; }
 
     /* =========================================
-       新增：为手机端专门优化的【悬浮锁定】排版
+       修改：极致手机端适配（上下双分屏不重叠）
        ========================================= */
     @media (max-width: 800px) {
         .main-container { 
             display: flex; 
             flex-direction: column; 
+            padding-bottom: 10vh; /* 预留底部缓冲空间 */
         }
-        /* 利用 display: contents 魔法，打破原有层级，重新在手机上排序 */
         .left-panel { display: contents; }
         
         .setup-box { order: 1; width: 100%; box-sizing: border-box; }
         
-        /* 核心：让右侧教室区固定在屏幕上端 */
+        /* 上半部分：教室区，占据屏幕高度50%并固定在顶部 */
         .right-panel { 
             order: 2; 
             width: 100%; 
@@ -154,16 +159,32 @@
             position: sticky; 
             top: 0; 
             z-index: 1000; 
-            max-height: 55vh; /* 最多占据屏幕一半多一点，留出下半部分滑名单 */
+            height: 50vh; 
+            height: 50dvh; /* 兼容现代手机浏览器 */
+            max-height: none;
             overflow-y: auto; 
             background: #fff; 
-            border-bottom: 4px solid #ff9800; /* 给个明显底边，区分滑动区域 */
+            border-bottom: 4px solid #ff9800; /* 分界线 */
             box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
-            margin-bottom: 15px;
+            margin-bottom: 0;
             padding: 10px;
         }
         
-        .list-box { order: 3; width: 100%; box-sizing: border-box; }
+        /* 下半部分：名单区，紧紧贴在教室区正下方，占据另外50% */
+        .list-box { 
+            order: 3; 
+            width: 100%; 
+            box-sizing: border-box; 
+            position: sticky; 
+            top: 50vh; 
+            top: 50dvh; 
+            height: 50vh; 
+            height: 50dvh; 
+            overflow-y: auto; /* 名单区自身独立滑动 */
+            z-index: 999;
+            background: #fff;
+        }
+        
         .bottom-area { margin-top: 20px; }
         .rect-tool { position: relative; right: auto; top: auto; margin-top: 15px; display: inline-block; }
     }
@@ -281,7 +302,18 @@
 </div>
 
 <script>
-    // === 变量声明 ===
+    // === 手机端拖拽兼容（增加保护，防止无网络时阻塞整个脚本） ===
+    try {
+        if (typeof MobileDragDrop !== 'undefined') {
+            MobileDragDrop.polyfill({
+                holdToDrag: 100 // 长按100毫秒触发，防误触
+            });
+        }
+    } catch(err) {
+        console.warn('手机拖拽辅助库未加载。');
+    }
+
+    // === 变量声明（严格避免重复声明） ===
     let studentsData = [];
     let isMirrored = false; 
     let customBoxes = [];
@@ -302,7 +334,7 @@
     const poolBoys = document.getElementById('pool-boys');
     const poolGirls = document.getElementById('pool-girls');
 
-    // === 云端同步配置 ===
+    // === GitHub 同步参数配置 ===
     const GITHUB_OWNER = 'Dzreal'; 
     const GITHUB_REPO = 'Classseat-Data'; 
     const GITHUB_FILE_PATH = 'seat_data.json'; 
@@ -323,7 +355,9 @@
 
     function encodeUTF8ToBase64(str) {
         return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-            function toSolidBytes(match, p1) { return String.fromCharCode('0x' + p1); }));
+            function toSolidBytes(match, p1) {
+                return String.fromCharCode('0x' + p1);
+        }));
     }
 
     function decodeBase64ToUTF8(str) {
@@ -338,7 +372,10 @@
             let response = await fetch(url, {
                 headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
             });
-            if (response.ok) { let data = await response.json(); return data.sha; }
+            if (response.ok) {
+                let data = await response.json();
+                return data.sha;
+            }
             return null;
         } catch (e) { return null; }
     }
@@ -348,6 +385,7 @@
         if (!token) { alert('⚠️ 请先输入 Token！'); return; }
 
         saveTokenLocally();
+
         if (studentsData.length === 0) { alert('当前没有数据可保存！'); return; }
 
         let exportData = {
@@ -361,9 +399,11 @@
             },
             deletedSeatIds: Array.from(document.querySelectorAll('.seat.deleted')).map(s => s.id),
             layout: {},
-            boxesData: customBoxes.map(b => ({ seats: b.attachedSeats.map(s => s.id), color: b.el.style.borderColor }))
+            boxesData: customBoxes.map(b => ({
+                seats: b.attachedSeats.map(s => s.id),
+                color: b.el.style.borderColor
+            }))
         };
-        
         document.querySelectorAll('.seat').forEach(seat => {
             if (seat.children.length > 0) exportData.layout[seat.id] = seat.children[0].id;
         });
@@ -376,12 +416,19 @@
             let sha = await getGitHubFileSha(token);
             
             let url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
-            let bodyData = { message: "Cloud save seat data", content: base64Content };
+            let bodyData = {
+                message: "Cloud save seat data to Private Repo",
+                content: base64Content
+            };
             if (sha) bodyData.sha = sha; 
 
             let response = await fetch(url, {
                 method: 'PUT',
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(bodyData)
             });
 
@@ -389,10 +436,10 @@
                 alert('✅ 成功保存至云端私有仓库！');
             } else {
                 let errData = await response.json();
-                alert('❌ 保存失败：' + (errData.message || '请确保Token拥有写入私有仓库的权限。'));
+                alert('❌ 保存失败：' + (errData.message || '请确保Token填写正确，且拥有写入私有仓库的权限。'));
             }
         } catch (e) {
-            alert('网络错误：无法连接到云端。如果是国内网络环境，可能被拦截了，请尝试开启加速器。\n详细报错：' + e.message);
+            alert('网络错误：无法连接到云端。如果你在国内，通常是因为网络拦截了接口 (api.github.com)，建议开启加速器后重试。\n详细报错：' + e.message);
         } finally {
             document.querySelector('.btn-github-save').innerText = '☁️ 一键保存至云端';
         }
@@ -418,10 +465,10 @@
                 applyImportedData(importedData); 
                 alert('✅ 已从云端读取并完美还原排座！');
             } else {
-                alert('❌ 读取失败，云端可能还没保存过数据，或者仓库名字不对。');
+                alert('❌ 读取失败，可能是云端还没有保存过数据，或者私有仓库名字没有对应上。');
             }
         } catch (e) {
-            alert('网络错误：无法连接到云端。如果是国内网络环境，可能被拦截了，请尝试开启加速器。\n详细报错：' + e.message);
+            alert('网络错误：无法连接到云端。如果你在国内，通常是因为网络拦截了接口 (api.github.com)，建议开启加速器后重试。\n详细报错：' + e.message);
         } finally {
             document.querySelector('.btn-github-load').innerText = '☁️ 从云端读取';
         }
@@ -432,6 +479,7 @@
             studentsData = importedData.studentsData;
             renderStudents();
         }
+
         if(importedData.config) {
             document.getElementById('set-cols').value = importedData.config.cols;
             document.getElementById('set-rows').value = importedData.config.rows;
@@ -442,12 +490,14 @@
             generateLayout();
             if (isMirrored !== targetMirror) toggleMirror();
         }
+
         if(importedData.deletedSeatIds) {
             document.querySelectorAll('.seat').forEach(s => {
                 if (importedData.deletedSeatIds.includes(s.id)) s.classList.add('deleted');
                 else s.classList.remove('deleted');
             });
         }
+
         if(importedData.layout) {
             for (let seatId in importedData.layout) {
                 let stuId = importedData.layout[seatId];
@@ -499,7 +549,10 @@
                     if(nameCol !== -1 && genderCol !== -1) { headerRowIndex = i; break; }
                 }
 
-                if(nameCol === -1 || genderCol === -1) { alert("导入失败：没找到姓名和性别列！"); return; }
+                if(nameCol === -1 || genderCol === -1) {
+                    alert("导入失败：在表格前10行中没有找到同时包含“姓名”和“性别”的列头！");
+                    return;
+                }
 
                 let newStudentsData = [];
                 for(let i = headerRowIndex + 1; i < jsonData.length; i++) {
@@ -514,10 +567,13 @@
                 }
 
                 if (newStudentsData.length === 0) { alert("未能提取到有效的学生名单！"); return; }
+
                 studentsData = newStudentsData;
                 alert(`✅ 导入成功：共读取到 ${studentsData.length} 名学生！`);
                 renderStudents(); 
-            } catch (err) { alert("读取文件发生错误，请上传正确的 Excel/CSV 文件！"); }
+            } catch (err) {
+                alert("读取文件发生错误，请上传正确的 Excel/CSV 文件！");
+            }
         };
         reader.readAsArrayBuffer(file);
     });
@@ -559,6 +615,7 @@
 
     function toggleMirror() {
         isMirrored = !isMirrored;
+        
         let btn = document.getElementById('btn-mirror');
         if (isMirrored) {
             btn.innerHTML = '✅ 退出镜像 (恢复原状)';
@@ -572,10 +629,12 @@
         let board = document.querySelector('.blackboard');
         if (isMirrored) {
             wrapper.appendChild(board);
-            board.style.marginBottom = '0px'; board.style.marginTop = '20px';
+            board.style.marginBottom = '0px';
+            board.style.marginTop = '20px';
         } else {
             wrapper.prepend(board);
-            board.style.marginTop = '0px'; board.style.marginBottom = '20px';
+            board.style.marginTop = '0px';
+            board.style.marginBottom = '20px';
         }
 
         let groups = Array.from(classroom.querySelectorAll('.group'));
@@ -584,6 +643,7 @@
         groups.forEach(g => {
             let subs = Array.from(g.querySelectorAll('.subgroup'));
             subs.reverse().forEach((sub, idx) => g.insertBefore(sub, g.children[idx]));
+
             subs.forEach(sub => {
                 let seats = Array.from(sub.querySelectorAll('.seat'));
                 seats.reverse().forEach((seat, idx) => sub.insertBefore(seat, sub.children[idx]));
@@ -592,12 +652,22 @@
 
         let door = document.querySelector('.door');
         if (door) {
-            if (door.classList.contains('left')) { door.classList.remove('left'); door.classList.add('right'); } 
-            else if (door.classList.contains('right')) { door.classList.remove('right'); door.classList.add('left'); }
-            
-            if (isMirrored) { door.style.top = 'auto'; door.style.bottom = '0'; } 
-            else { door.style.bottom = 'auto'; door.style.top = '0'; }
+            if (door.classList.contains('left')) {
+                door.classList.remove('left');
+                door.classList.add('right');
+            } else if (door.classList.contains('right')) {
+                door.classList.remove('right');
+                door.classList.add('left');
+            }
+            if (isMirrored) {
+                door.style.top = 'auto';
+                door.style.bottom = '0';
+            } else {
+                door.style.bottom = 'auto';
+                door.style.top = '0';
+            }
         }
+
         customBoxes.forEach(b => b.updateLayout());
     }
 
@@ -619,9 +689,17 @@
         let groupSizes = [];
         let remaining = cols;
         if (doorPos === 'left') {
-            while (remaining > 0) { let s = Math.min(colsPerGroup, remaining); groupSizes.push(s); remaining -= s; }
+            while (remaining > 0) {
+                let s = Math.min(colsPerGroup, remaining);
+                groupSizes.push(s);
+                remaining -= s;
+            }
         } else {
-            while (remaining > 0) { let s = Math.min(colsPerGroup, remaining); groupSizes.unshift(s); remaining -= s; }
+            while (remaining > 0) {
+                let s = Math.min(colsPerGroup, remaining);
+                groupSizes.unshift(s); 
+                remaining -= s;
+            }
         }
 
         let seatCounter = 0;
@@ -630,7 +708,10 @@
 
         let startColOffsets = [];
         let currCol = 0;
-        for(let g=0; g<groupCount; g++) { startColOffsets.push(currCol); currCol += groupSizes[g]; }
+        for(let g=0; g<groupCount; g++) {
+            startColOffsets.push(currCol);
+            currCol += groupSizes[g];
+        }
 
         for (let g = 0; g < groupCount; g++) {
             let width = groupSizes[g];
@@ -666,7 +747,9 @@
                     };
 
                     seatDiv.ondblclick = function(e) {
-                        if (this.classList.contains('deleted')) { this.classList.remove('deleted'); }
+                        if (this.classList.contains('deleted')) {
+                            this.classList.remove('deleted');
+                        }
                     };
 
                     seatDiv.ondrop = drop;
@@ -686,7 +769,7 @@
         classroom.offsetHeight; 
         
         let allSubgroups = Array.from(document.querySelectorAll('.subgroup'));
-        allSubgroups.forEach((sub) => {
+        allSubgroups.forEach((sub, subIndexOverall) => {
             let parentGrp = sub.parentElement;
             let domGroups = Array.from(document.querySelectorAll('.group'));
             let g = domGroups.indexOf(parentGrp);
@@ -697,7 +780,9 @@
             let color = subgroupColors[colorIndex];
 
             let seats = Array.from(sub.querySelectorAll('.seat'));
-            if(seats.length > 0) { createCustomBox(seats, color);  }
+            if(seats.length > 0) {
+                createCustomBox(seats, color); 
+            }
         });
 
         if (wasMirrored) toggleMirror();
@@ -732,8 +817,12 @@
             let targetPool = isEven ? boys : girls;
             let backupPool = isEven ? girls : boys; 
 
-            let stu = targetPool.pop() || backupPool.pop(); 
-            if (stu) { seat.appendChild(stu); }
+            let stu = targetPool.pop();
+            if (!stu) stu = backupPool.pop(); 
+
+            if (stu) {
+                seat.appendChild(stu);
+            }
         });
 
         if (wasMirrored) toggleMirror(); 
@@ -745,6 +834,7 @@
 
         let doorPos = document.getElementById('set-door').value;
         let domGroups = Array.from(document.querySelectorAll('.group'));
+        
         if (doorPos === 'right') domGroups.reverse();
 
         let orderedSubgroups = [];
@@ -759,7 +849,10 @@
             allSeats.push(...Array.from(sub.querySelectorAll('.seat:not(.deleted)')));
         });
 
-        if (allSeats.length === 0) { if (wasMirrored) toggleMirror(); return; }
+        if (allSeats.length === 0) {
+            if (wasMirrored) toggleMirror();
+            return;
+        }
 
         let studentsInSeats = allSeats.map(s => s.children.length > 0 ? s.children[0] : null);
 
@@ -770,7 +863,10 @@
 
         let length = studentsInSeats.length;
         shiftStep = shiftStep % length;
-        let shiftedStudents = [ ...studentsInSeats.slice(length - shiftStep), ...studentsInSeats.slice(0, length - shiftStep) ];
+        let shiftedStudents = [
+            ...studentsInSeats.slice(length - shiftStep),
+            ...studentsInSeats.slice(0, length - shiftStep)
+        ];
 
         allSeats.forEach(s => {
             if (s.children.length > 0) {
@@ -782,25 +878,96 @@
 
         allSeats.forEach((s, i) => {
             let stu = shiftedStudents[i];
-            if (stu !== null) { s.appendChild(stu); }
+            if (stu !== null) {
+                s.appendChild(stu);
+            }
         });
         
-        sortPool(poolBoys); sortPool(poolGirls);
+        sortPool(poolBoys);
+        sortPool(poolGirls);
+
         if (wasMirrored) toggleMirror(); 
     }
 
-    // ==========================================
-    //  通用核心：处理放下元素逻辑 (双端共用)
-    // ==========================================
+    function dragStart(e) {
+        draggedElement = e.target;
+        setTimeout(() => { if (e.target.classList.contains('student')) e.target.classList.add('dragging'); }, 0);
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function dragEnd(e) {
+        if (e.target.classList.contains('student')) e.target.classList.remove('dragging');
+        draggedElement = null;
+    }
+
+    function allowDrop(e) {
+        let targetSeat = e.target.closest('.seat');
+        if (targetSeat && targetSeat.classList.contains('deleted')) return; 
+
+        if (draggedElement && draggedElement.classList.contains('student')) {
+            let targetPool = e.target.closest('.pool-col');
+            if (targetPool) {
+                let isBoy = draggedElement.classList.contains('boy');
+                let isGirl = draggedElement.classList.contains('girl');
+                if ((targetPool.id === 'pool-boys' && isGirl) || (targetPool.id === 'pool-girls' && isBoy)) return;
+            }
+        }
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function drop(e) {
+        e.preventDefault();
+        if (!draggedElement) return;
+
+        if (draggedElement.id === 'rect-tool') {
+            let targetSeat = e.target.closest('.seat:not(.deleted)');
+            if (targetSeat) createCustomBox([targetSeat]);
+            return; 
+        }
+        
+        let target = e.target;
+        while (target && !target.classList.contains('seat') && !target.classList.contains('pool-col') && !target.classList.contains('student')) {
+            target = target.parentNode;
+            if (target === document.body) return; 
+        }
+        if (!target) return;
+
+        if (target.classList.contains('seat') && target.classList.contains('deleted')) return;
+
+        if (target.classList.contains('student') && target !== draggedElement) {
+            let targetParent = target.parentNode;
+            let sourceParent = draggedElement.parentNode;
+            targetParent.appendChild(draggedElement);
+            sourceParent.appendChild(target);
+        } else if (target.classList.contains('seat') || target.classList.contains('pool-col')) {
+            if (target.classList.contains('seat') && target.children.length > 0) {
+                let existingStudent = target.children[0];
+                let sourceParent = draggedElement.parentNode;
+                target.appendChild(draggedElement);
+                if (sourceParent.classList.contains('pool-col')) {
+                    let exIsBoy = existingStudent.classList.contains('boy');
+                    let correctPool = exIsBoy ? poolBoys : poolGirls;
+                    correctPool.appendChild(existingStudent);
+                    sortPool(correctPool);
+                } else {
+                    sourceParent.appendChild(existingStudent);
+                }
+            } else {
+                target.appendChild(draggedElement);
+                if (target.classList.contains('pool-col')) sortPool(target);
+            }
+        }
+    }
+
+    // === 处理原生鼠标长按拖拽通用逻辑 ===
     function processDrop(target, draggedEl) {
         if (!draggedEl) return;
-
         if (draggedEl.id === 'rect-tool') {
             let targetSeat = target.closest('.seat:not(.deleted)');
             if (targetSeat) createCustomBox([targetSeat]);
             return; 
         }
-        
         while (target && !target.classList.contains('seat') && !target.classList.contains('pool-col') && !target.classList.contains('student')) {
             target = target.parentNode;
             if (target === document.body) return; 
@@ -840,29 +1007,7 @@
         }
     }
 
-    // 电脑端 Mouse 原生拖拽事件
-    function dragStart(e) {
-        draggedElement = e.target;
-        setTimeout(() => { if (e.target.classList.contains('student')) e.target.classList.add('dragging'); }, 0);
-        e.dataTransfer.effectAllowed = 'move';
-    }
-    function dragEnd(e) {
-        if (e.target.classList.contains('student')) e.target.classList.remove('dragging');
-        draggedElement = null;
-    }
-    function allowDrop(e) {
-        let targetSeat = e.target.closest('.seat');
-        if (targetSeat && targetSeat.classList.contains('deleted')) return; 
-        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-    }
-    function drop(e) {
-        e.preventDefault();
-        processDrop(e.target, draggedElement);
-    }
-
-    // ==========================================
-    //  手机端 Touch 原生长按拖拽引擎 (完美无冲方案)
-    // ==========================================
+    // === 手机端 Touch 原生拖拽 ===
     let touchDragTarget = null;
     let touchStartX = 0, touchStartY = 0;
     let ghostEl = null;
@@ -870,7 +1015,6 @@
     let isTouchDragging = false;
 
     document.addEventListener('touchstart', function(e) {
-        // 只拦截学生和生成框工具
         let target = e.target.closest('.student') || e.target.closest('#rect-tool');
         if (target) {
             touchStartX = e.touches[0].clientX;
@@ -878,12 +1022,10 @@
             touchDragTarget = target;
             draggedElement = target; 
 
-            // 长按 150ms 才判定为拖拽，防止干扰正常上下滑动
             touchTimer = setTimeout(() => {
                 isTouchDragging = true;
-                target.style.opacity = '0.3'; // 原位置变半透明
+                target.style.opacity = '0.3'; 
                 
-                // 制造一个视觉替身跟随手指
                 let rect = target.getBoundingClientRect();
                 ghostEl = target.cloneNode(true);
                 ghostEl.style.position = 'fixed';
@@ -893,12 +1035,11 @@
                 ghostEl.style.height = rect.height + 'px';
                 ghostEl.style.opacity = '0.9';
                 ghostEl.style.zIndex = '99999';
-                ghostEl.style.pointerEvents = 'none'; // 极其重要：让射线穿透它检测底部目标
+                ghostEl.style.pointerEvents = 'none'; 
                 ghostEl.style.boxShadow = '0 10px 20px rgba(0,0,0,0.4)';
                 ghostEl.style.transform = 'scale(1.1)';
                 document.body.appendChild(ghostEl);
                 
-                // 手机震动反馈（仅支持的设备）
                 if (navigator.vibrate) navigator.vibrate(50);
             }, 150);
         }
@@ -910,14 +1051,12 @@
             let currentY = e.touches[0].clientY;
             
             if (!isTouchDragging) {
-                // 如果在长按时间前手指就滑动了，说明意图是滚动页面，取消拖拽
                 if (Math.abs(currentX - touchStartX) > 10 || Math.abs(currentY - touchStartY) > 10) {
                     clearTimeout(touchTimer);
                     touchDragTarget = null;
                     draggedElement = null;
                 }
             } else {
-                // 已经进入拖拽状态，禁止页面随手指滚动
                 e.preventDefault(); 
                 if (ghostEl) {
                     let dx = currentX - touchStartX;
@@ -931,10 +1070,9 @@
     document.addEventListener('touchend', function(e) {
         clearTimeout(touchTimer);
         if (isTouchDragging && touchDragTarget) {
-            touchDragTarget.style.opacity = '1'; // 恢复原状
+            touchDragTarget.style.opacity = '1'; 
             if (ghostEl) { ghostEl.remove(); ghostEl = null; }
             
-            // 获取手指松开瞬间最底下的元素
             let touch = e.changedTouches[0];
             let dropTargetElement = document.elementFromPoint(touch.clientX, touch.clientY);
             
@@ -946,7 +1084,6 @@
         isTouchDragging = false;
     });
 
-    // === 组框生成与控制 ===
     function createCustomBox(seatsArray, specificColor = null) {
         let boxContainer = document.createElement('div');
         boxContainer.className = 'custom-box';
@@ -962,6 +1099,7 @@
         let moveBtn = document.createElement('div');
         moveBtn.className = 'move-btn';
         moveBtn.innerText = '✥';
+        // 绑定双端移动事件
         moveBtn.onmousedown = function(e) { startMoveBox(e, boxObj); };
         moveBtn.ontouchstart = function(e) { startMoveBox(e, boxObj); };
         boxContainer.appendChild(moveBtn);
@@ -979,6 +1117,7 @@
             let handle = document.createElement('div');
             handle.className = 'handle ' + pos;
             handle.style.borderColor = color;
+            // 绑定双端拉伸事件
             handle.onmousedown = function(e) { startResize(e, boxObj, pos); };
             handle.ontouchstart = function(e) { startResize(e, boxObj, pos); };
             boxContainer.appendChild(handle);
@@ -1018,6 +1157,7 @@
 
     window.addEventListener('resize', () => customBoxes.forEach(b => b.updateLayout()));
 
+    // === 兼容双端操作的统一追踪逻辑 ===
     function startResize(e, box, pos) {
         e.preventDefault(); e.stopPropagation();
         activeBox = box; activeHandle = pos;
@@ -1025,8 +1165,10 @@
         startY = e.touches ? e.touches[0].clientY : e.clientY;
         startRect = box.el.getBoundingClientRect();
         
-        document.addEventListener('mousemove', onBoxMouseMove); document.addEventListener('mouseup', onBoxMouseUp);
-        document.addEventListener('touchmove', onBoxMouseMove, { passive: false }); document.addEventListener('touchend', onBoxMouseUp);
+        document.addEventListener('mousemove', onBoxMouseMove);
+        document.addEventListener('mouseup', onBoxMouseUp);
+        document.addEventListener('touchmove', onBoxMouseMove, { passive: false });
+        document.addEventListener('touchend', onBoxMouseUp);
     }
 
     function onBoxMouseMove(e) {
@@ -1057,8 +1199,10 @@
         moveStartY = e.touches ? e.touches[0].clientY : e.clientY;
         moveStartRect = box.el.getBoundingClientRect();
         
-        document.addEventListener('mousemove', onMoveBoxMove); document.addEventListener('mouseup', onMoveBoxUp);
-        document.addEventListener('touchmove', onMoveBoxMove, { passive: false }); document.addEventListener('touchend', onMoveBoxUp);
+        document.addEventListener('mousemove', onMoveBoxMove);
+        document.addEventListener('mouseup', onMoveBoxUp);
+        document.addEventListener('touchmove', onMoveBoxMove, { passive: false });
+        document.addEventListener('touchend', onMoveBoxUp);
     }
 
     function onMoveBoxMove(e) {
@@ -1076,15 +1220,25 @@
     }
 
     function onBoxMouseUp(e) {
-        document.removeEventListener('mousemove', onBoxMouseMove); document.removeEventListener('mouseup', onBoxMouseUp);
-        document.removeEventListener('touchmove', onBoxMouseMove); document.removeEventListener('touchend', onBoxMouseUp);
-        if (activeBox) { recalculateBoxSeats(activeBox); activeBox = null; activeHandle = null; }
+        document.removeEventListener('mousemove', onBoxMouseMove);
+        document.removeEventListener('mouseup', onBoxMouseUp);
+        document.removeEventListener('touchmove', onBoxMouseMove);
+        document.removeEventListener('touchend', onBoxMouseUp);
+        if (activeBox) {
+            recalculateBoxSeats(activeBox);
+            activeBox = null; activeHandle = null;
+        }
     }
     
     function onMoveBoxUp(e) {
-        document.removeEventListener('mousemove', onMoveBoxMove); document.removeEventListener('mouseup', onMoveBoxUp);
-        document.removeEventListener('touchmove', onMoveBoxMove); document.removeEventListener('touchend', onMoveBoxUp);
-        if (moveActiveBox) { recalculateBoxSeats(moveActiveBox); moveActiveBox = null; }
+        document.removeEventListener('mousemove', onMoveBoxMove);
+        document.removeEventListener('mouseup', onMoveBoxUp);
+        document.removeEventListener('touchmove', onMoveBoxMove);
+        document.removeEventListener('touchend', onMoveBoxUp);
+        if (moveActiveBox) {
+            recalculateBoxSeats(moveActiveBox);
+            moveActiveBox = null;
+        }
     }
 
     function recalculateBoxSeats(boxTarget) {
@@ -1100,17 +1254,23 @@
             }
         });
         
-        if (newlyAttached.length > 0) boxTarget.attachedSeats = newlyAttached;
+        if (newlyAttached.length > 0) {
+            boxTarget.attachedSeats = newlyAttached;
+        }
         boxTarget.updateLayout(); 
     }
 
     function saveRecord() {
         let slot = document.getElementById('save-slot').value;
+        
         localStorage.setItem('seat_students_' + slot, JSON.stringify(studentsData));
 
         let config = {
-            cols: document.getElementById('set-cols').value, rows: document.getElementById('set-rows').value,
-            colsPerGroup: document.getElementById('set-colsPerGroup').value, doorPos: document.getElementById('set-door').value, isMirrored: isMirrored  
+            cols: document.getElementById('set-cols').value,
+            rows: document.getElementById('set-rows').value,
+            colsPerGroup: document.getElementById('set-colsPerGroup').value,
+            doorPos: document.getElementById('set-door').value,
+            isMirrored: isMirrored  
         };
         localStorage.setItem('seat_config_' + slot, JSON.stringify(config));
 
@@ -1123,14 +1283,18 @@
         });
         localStorage.setItem('seat_history_' + slot, JSON.stringify(layout));
 
-        let boxesData = customBoxes.map(b => ({ seats: b.attachedSeats.map(s => s.id), color: b.el.style.borderColor }));
+        let boxesData = customBoxes.map(b => ({
+            seats: b.attachedSeats.map(s => s.id),
+            color: b.el.style.borderColor
+        }));
         localStorage.setItem('seat_history_boxes_' + slot, JSON.stringify(boxesData));
-        alert('✅ 保存成功：数据已保存至浏览器的本地记录 ' + slot + ' 中。');
+
+        alert('✅ 保存成功：数据已保存至浏览器的【历史记录 ' + slot + '】中。');
     }
 
     function loadRecord(slot) {
         let layoutData = localStorage.getItem('seat_history_' + slot);
-        if (!layoutData) { alert('❌ 本地历史记录为空，请先排列并保存！'); return; }
+        if (!layoutData) { alert('❌ 本地历史记录 ' + slot + ' 为空，请先排列并保存！'); return; }
 
         let savedStudents = localStorage.getItem('seat_students_' + slot);
         let importedData = {
@@ -1142,47 +1306,84 @@
         };
         
         if(!importedData.config) resetAll();
+        
         applyImportedData(importedData);
     }
 
     function exportToFile() {
-        if (studentsData.length === 0) { alert('当前没有数据可导出！'); return; }
+        if (studentsData.length === 0) { alert('当前没有学生数据，无法导出！'); return; }
+
+        let config = {
+            cols: document.getElementById('set-cols').value,
+            rows: document.getElementById('set-rows').value,
+            colsPerGroup: document.getElementById('set-colsPerGroup').value,
+            doorPos: document.getElementById('set-door').value,
+            isMirrored: isMirrored
+        };
+
+        let deletedSeatIds = Array.from(document.querySelectorAll('.seat.deleted')).map(s => s.id);
+
+        let layout = {};
+        document.querySelectorAll('.seat').forEach(seat => {
+            if (seat.children.length > 0) layout[seat.id] = seat.children[0].id;
+        });
+
+        let boxesData = customBoxes.map(b => ({
+            seats: b.attachedSeats.map(s => s.id),
+            color: b.el.style.borderColor
+        }));
+
         let exportData = {
             studentsData: studentsData,
-            config: { cols: document.getElementById('set-cols').value, rows: document.getElementById('set-rows').value, colsPerGroup: document.getElementById('set-colsPerGroup').value, doorPos: document.getElementById('set-door').value, isMirrored: isMirrored },
-            deletedSeatIds: Array.from(document.querySelectorAll('.seat.deleted')).map(s => s.id),
-            layout: {},
-            boxesData: customBoxes.map(b => ({ seats: b.attachedSeats.map(s => s.id), color: b.el.style.borderColor }))
+            config: config,
+            deletedSeatIds: deletedSeatIds,
+            layout: layout,
+            boxesData: boxesData
         };
-        document.querySelectorAll('.seat').forEach(seat => { if (seat.children.length > 0) exportData.layout[seat.id] = seat.children[0].id; });
 
         let dataStr = JSON.stringify(exportData, null, 2);
         let blob = new Blob([dataStr], { type: "application/json" });
         let url = URL.createObjectURL(blob);
-        let a = document.createElement('a'); a.href = url;
+
+        let a = document.createElement('a');
+        a.href = url;
         
         let now = new Date();
-        let dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+        let dateStr = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0') + '_' + 
+                      String(now.getHours()).padStart(2, '0') + '-' + 
+                      String(now.getMinutes()).padStart(2, '0') + '-' + 
+                      String(now.getSeconds()).padStart(2, '0');
                       
         a.download = `班级座位记录_${dateStr}.json`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     document.getElementById('file-import-record').addEventListener('change', function(e) {
         let file = e.target.files[0];
         if (!file) return;
+
         let reader = new FileReader();
         reader.onload = function(e) {
             try {
-                applyImportedData(JSON.parse(e.target.result));
-                alert('✅ 成功读取文件并还原！');
-            } catch (err) { alert('读取失败，请检查文件格式！'); }
+                let importedData = JSON.parse(e.target.result);
+                applyImportedData(importedData);
+                alert('✅ 成功读取本地排座文件并完美还原现场！');
+            } catch (err) {
+                alert('读取文件失败，请确保导入的是通过本系统生成的 `.json` 排座记录文件！');
+            }
         };
-        reader.readAsText(file); e.target.value = '';
+        reader.readAsText(file);
+        e.target.value = '';
     });
 
     generateLayout();
 
 </script>
+
 </body>
 </html>
