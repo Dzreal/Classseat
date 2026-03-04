@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级日志笔记本</title>
+    <style>
+        :root {
+            --paper-color: #fdfaf6;
+            --line-color: #e0d8c8;
+            --text-color: #333;
+            --theme-color: #4a5568;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #7b5e43; /* 木质桌面背景色 */
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(0,0,0,0.05) 0px,
+                rgba(0,0,0,0.05) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', "Microsoft YaHei", sans-serif;
+            color: var(--text-color);
+        }
+
+        /* 笔记本外壳 */
+        .notebook {
+            width: 900px;
+            height: 600px;
+            background: var(--paper-color);
+            border-radius: 10px;
+            box-shadow: 15px 15px 40px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0,0,0,0.05);
+            display: flex;
+            position: relative;
+        }
+
+        /* 中间装订线/铁圈效果 */
+        .binding {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0.1) 0%, 
+                rgba(0,0,0,0.2) 20%, 
+                rgba(0,0,0,0) 50%, 
+                rgba(0,0,0,0.2) 80%, 
+                rgba(0,0,0,0.1) 100%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+        }
+
+        .ring {
+            width: 30px;
+            height: 10px;
+            background: linear-gradient(to bottom, #eee, #999, #eee);
+            border-radius: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        /* 左右书页通用 */
+        .page {
+            flex: 1;
+            padding: 40px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .page.left {
+            border-right: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page.right {
+            border-left: 1px solid rgba(255,255,255,0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 左侧历史区 */
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 24px;
+            color: var(--theme-color);
+            border-bottom: 2px dashed var(--line-color);
+            padding-bottom: 10px;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 15px;
+            padding-right: 10px;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: rgba(0,0,0,0.02);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover, .history-item.active {
+            background: #e2e8f0;
+            box-shadow: inset 2px 0 0 var(--theme-color);
+        }
+
+        /* GitHub 配置区 */
+        .github-settings {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .github-settings input {
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 6px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .github-settings label {
+            display: block;
+            margin-bottom: 4px;
+            color: #64748b;
+        }
+
+        /* 右侧书写区 */
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .weather-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .weather-icon {
+            cursor: pointer;
+            opacity: 0.4;
+            transition: all 0.2s;
+            font-size: 20px;
+        }
+
+        .weather-icon.active {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .main-title {
+            text-align: center;
+            font-size: 28px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        /* 横格信纸书写区 */
+        textarea.editor {
+            flex: 1;
+            width: 100%;
+            background-color: transparent;
+            background-image: linear-gradient(transparent 31px, var(--line-color) 31px);
+            background-size: 100% 32px;
+            background-attachment: local;
+            line-height: 32px;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+            color: #2d3748;
+            padding: 0 5px;
+        }
+
+        /* 底部按钮 */
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-save {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-save:hover { background-color: #2563eb; }
+
+        .btn-export {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-export:hover { background-color: #059669; }
+
+        .status-msg {
+            font-size: 12px;
+            color: #64748b;
+            align-self: center;
+            margin-left: 10px;
+            flex: 1;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <div class="notebook">
+        <div class="binding" id="binding"></div>
+
+        <div class="page left">
+            <h2>日志目录</h2>
+            <div class="history-list" id="historyList">
+                </div>
+
+            <div class="github-settings">
+                <strong>同步到 GitHub 私有仓库</strong>
+                <label style="margin-top:8px;">Personal Access Token:</label>
+                <input type="password" id="ghToken" placeholder="ghp_xxxxxx...">
+                <label>仓库所有者 (Owner) / 仓库名 (Repo):</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="ghOwner" placeholder="username">
+                    <input type="text" id="ghRepo" placeholder="repository">
+                </div>
+                <label>文件保存路径 (如: data/logs.json):</label>
+                <input type="text" id="ghPath" placeholder="data/logs.json" value="logs.json">
+            </div>
+        </div>
+
+        <div class="page right">
+            <div class="header-info">
+                <span id="dateDisplay">加载中...</span>
+                <div class="weather-selector" id="weatherSelector">
+                    <span class="weather-icon" data-weather="☀️">☀️</span>
+                    <span class="weather-icon" data-weather="⛅">⛅</span>
+                    <span class="weather-icon" data-weather="🌧️">🌧️</span>
+                    <span class="weather-icon" data-weather="❄️">❄️</span>
+                </div>
+            </div>
+            
+            <div class="main-title">今日班级纪要</div>
+            
+            <textarea class="editor" id="editor" placeholder="在此输入班级事务，按下回车键自动生成列表点..."></textarea>
+            
+            <div class="actions">
+                <div>
+                    <button class="btn-save" id="btnSave">保存并同步 GitHub</button>
+                    <span class="status-msg" id="statusMsg"></span>
+                </div>
+                <button class="btn-export" id="btnExport">导出为 TXT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 1. 初始化与数据结构 ===
+        let logsData = JSON.parse(localStorage.getItem('classLogsData')) || {};
+        let currentDateStr = ''; // 当前选中的日期 YYYY-MM-DD
+        let editorTimer = null;
+
+        const editor = document.getElementById('editor');
+        const historyList = document.getElementById('historyList');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const weatherIcons = document.querySelectorAll('.weather-icon');
+        const statusMsg = document.getElementById('statusMsg');
+
+        // GitHub DOM
+        const ghTokenInput = document.getElementById('ghToken');
+        const ghOwnerInput = document.getElementById('ghOwner');
+        const ghRepoInput = document.getElementById('ghRepo');
+        const ghPathInput = document.getElementById('ghPath');
+
+        // 生成铁圈 UI
+        const bindingStr = Array(12).fill('<div class="ring"></div>').join('');
+        document.getElementById('binding').innerHTML = bindingStr;
+
+        // 获取格式化日期 YYYY-MM-DD
+        function getFormattedDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // 获取星期
+        function getWeekday(dateObj) {
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            return days[dateObj.getDay()];
+        }
+
+        // 页面启动加载
+        function init() {
+            loadGitHubConfig();
+            const today = new Date();
+            const todayStr = getFormattedDate(today);
+            
+            // 如果今天没有日志记录，自动初始化一条空记录
+            if (!logsData[todayStr]) {
+                logsData[todayStr] = {
+                    date: todayStr,
+                    weekday: getWeekday(today),
+                    weather: '☀️',
+                    content: ''
+                };
+                saveToLocal();
+            }
+            
+            renderHistoryList();
+            loadLog(todayStr);
+        }
+
+        // === 2. 核心交互逻辑 ===
+
+        // 渲染左侧历史列表
+        function renderHistoryList() {
+            historyList.innerHTML = '';
+            const sortedDates = Object.keys(logsData).sort((a, b) => new Date(b) - new Date(a)); // 倒序
+            
+            sortedDates.forEach(date => {
+                const log = logsData[date];
+                const div = document.createElement('div');
+                div.className = `history-item ${date === currentDateStr ? 'active' : ''}`;
+                div.innerHTML = `<span>${date} ${log.weekday}</span> <span>${log.weather}</span>`;
+                div.onclick = () => loadLog(date);
+                historyList.appendChild(div);
+            });
+        }
+
+        // 加载特定日期的日志到右侧书写区
+        function loadLog(dateStr) {
+            currentDateStr = dateStr;
+            const log = logsData[dateStr];
+            
+            dateDisplay.textContent = `${log.date} ${log.weekday}`;
+            editor.value = log.content;
+            
+            // 设置天气高亮
+            weatherIcons.forEach(icon => {
+                icon.classList.toggle('active', icon.dataset.weather === log.weather);
+            });
+
+            renderHistoryList(); // 刷新高亮状态
+            showStatus('已加载本地数据');
+        }
+
+        // 自动分点功能 (监听 Enter 键)
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const text = this.value;
+                const bullet = '\n• ';
+                
+                // 在光标位置插入换行和项目符号
+                this.value = text.substring(0, start) + bullet + text.substring(end);
+                
+                // 移动光标到项目符号之后
+                this.selectionStart = this.selectionEnd = start + bullet.length;
+                
+                triggerAutoSave();
+            }
+        });
+
+        // 监听输入，触发防抖自动保存
+        editor.addEventListener('input', triggerAutoSave);
+
+        // 天气点击事件
+        weatherIcons.forEach(icon => {
+            icon.addEventListener('click', function() {
+                const weather = this.dataset.weather;
+                weatherIcons.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                logsData[currentDateStr].weather = weather;
+                saveToLocal();
+            });
+        });
+
+        // === 3. 数据存取 ===
+
+        // 触发本地自动保存
+        function triggerAutoSave() {
+            logsData[currentDateStr].content = editor.value;
+            saveToLocal();
+            
+            showStatus('本地自动保存中...');
+            clearTimeout(editorTimer);
+            editorTimer = setTimeout(() => {
+                showStatus('已保存到本地缓存');
+            }, 1000);
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('classLogsData', JSON.stringify(logsData));
+        }
+
+        function showStatus(msg) {
+            statusMsg.textContent = msg;
+            setTimeout(() => {
+                if(statusMsg.textContent === msg) statusMsg.textContent = '';
+            }, 3000);
+        }
+
+        // === 4. GitHub API 同步逻辑 ===
+
+        // GitHub 解决中文 Base64 编码的函数
+        function utf8_to_b64(str) {
+            return window.btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function loadGitHubConfig() {
+            ghTokenInput.value = localStorage.getItem('gh_token') || '';
+            ghOwnerInput.value = localStorage.getItem('gh_owner') || '';
+            ghRepoInput.value = localStorage.getItem('gh_repo') || '';
+            ghPathInput.value = localStorage.getItem('gh_path') || 'logs.json';
+        }
+
+        function saveGitHubConfig() {
+            localStorage.setItem('gh_token', ghTokenInput.value.trim());
+            localStorage.setItem('gh_owner', ghOwnerInput.value.trim());
+            localStorage.setItem('gh_repo', ghRepoInput.value.trim());
+            localStorage.setItem('gh_path', ghPathInput.value.trim());
+        }
+
+        document.getElementById('btnSave').addEventListener('click', async () => {
+            // 先强制保存一次本地最新内容和 GitHub 配置
+            logsData[currentDateStr].content = editor.value;
+            saveToLocal();
+            saveGitHubConfig();
+
+            const token = ghTokenInput.value.trim();
+            const owner = ghOwnerInput.value.trim();
+            const repo = ghRepoInput.value.trim();
+            const path = ghPathInput.value.trim();
+
+            if (!token || !owner || !repo || !path) {
+                alert('请先在左下角补全 GitHub 的同步配置参数！本地已保存。');
+                return;
+            }
+
+            showStatus('正在同步到 GitHub...');
+            document.getElementById('btnSave').disabled = true;
+
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                // 1. 先尝试 GET 获取该文件的 sha (更新文件必需)
+                let sha = null;
+                const getRes = await fetch(apiUrl, { method: 'GET', headers });
+                
+                if (getRes.status === 200) {
+                    const fileData = await getRes.json();
+                    sha = fileData.sha; // 获取已存在文件的 sha
+                } else if (getRes.status !== 404) {
+                    throw new Error('获取仓库文件信息失败，请检查 Token 权限或网络。');
+                }
+
+                // 2. 将本地的所有日志数据转为 JSON 并进行 Base64 编码
+                const contentStr = JSON.stringify(logsData, null, 2);
+                const encodedContent = utf8_to_b64(contentStr);
+
+                // 3. PUT 请求上传/更新文件
+                const bodyData = {
+                    message: `更新班级日志: ${currentDateStr}`,
+                    content: encodedContent
+                };
+                if (sha) bodyData.sha = sha; // 如果文件存在则附加 sha 以执行更新
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(bodyData)
+                });
+
+                if (putRes.status === 200 || putRes.status === 201) {
+                    showStatus('✅ 成功同步到 GitHub!');
+                } else {
+                    throw new Error(`写入失败: 状态码 ${putRes.status}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('同步失败: ' + error.message);
+                showStatus('同步失败，请查看控制台');
+            } finally {
+                document.getElementById('btnSave').disabled = false;
+            }
+        });
+
+        // === 5. 导出为 TXT 功能 ===
+        document.getElementById('btnExport').addEventListener('click', () => {
+            const log = logsData[currentDateStr];
+            const content = `日期: ${log.date} ${log.weekday}\n天气: ${log.weather}\n---\n【今日班级纪要】\n\n${log.content}`;
+            
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `班级纪要_${log.date}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>
