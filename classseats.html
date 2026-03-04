@@ -252,7 +252,7 @@
                 <button class="btn-random" onclick="randomizeSeats()">🎲 男女随机相间排座</button>
                 <button class="btn-rotate" onclick="rotateGroups()">🔄 S型小组轮换</button>
                 <button class="btn-mirror" id="btn-mirror" onclick="toggleMirror()">🔄 师生视角切换</button>
-                <button class="btn-toggle-boxes" id="btn-toggle-boxes" onclick="toggleBoxes()">🔲 隐藏小组框</button>
+                <button class="btn-toggle-boxes" id="btn-toggle-boxes" onclick="toggleBoxes()">🔲 去除所有小组框</button>
                 <button class="btn-reset" onclick="resetAll()">名单全体归位</button>
             </div>
 
@@ -307,7 +307,8 @@
     // === 变量声明（严格避免重复声明） ===
     let studentsData = [];
     let isMirrored = false; 
-    let isBoxesHidden = false; // 新增：记录小组框是否被隐藏
+    let isBoxesRemoved = false; // 新增：记录小组框是否被去除
+    let savedBoxesData = [];    // 新增：保存被去除的小组框数据
     let customBoxes = [];
     let colorIndexTracker = 0;
     
@@ -514,11 +515,12 @@
             });
         }
 
-        // 读取后默认恢复显示小组框
-        isBoxesHidden = false;
+        // 读取后默认重置去除状态
+        isBoxesRemoved = false;
+        savedBoxesData = [];
         let toggleBtn = document.getElementById('btn-toggle-boxes');
         if (toggleBtn) {
-            toggleBtn.innerHTML = '🔲 隐藏小组框';
+            toggleBtn.innerHTML = '🔲 去除所有小组框';
             toggleBtn.style.backgroundColor = '';
         }
     }
@@ -671,22 +673,36 @@
         customBoxes.forEach(b => b.updateLayout());
     }
     
-    // === 新增：隐藏/显示小组框功能 ===
+    // === 新增：彻底去除/恢复小组框功能 ===
     function toggleBoxes() {
-        isBoxesHidden = !isBoxesHidden;
         let btn = document.getElementById('btn-toggle-boxes');
         
-        if (isBoxesHidden) {
-            btn.innerHTML = '🔲 恢复小组框';
-            btn.style.backgroundColor = '#9e9e9e'; // 隐藏时置灰
-            customBoxes.forEach(b => b.el.style.display = 'none');
+        if (!isBoxesRemoved) {
+            // 执行去除：保存当前所有框的数据并从DOM中彻底移除
+            savedBoxesData = customBoxes.map(b => ({
+                seats: b.attachedSeats.map(s => s.id),
+                color: b.el.style.borderColor
+            }));
+            
+            customBoxes.forEach(b => b.el.remove());
+            customBoxes = []; // 清空当前框数组
+            
+            isBoxesRemoved = true;
+            btn.innerHTML = '🔲 恢复所有小组框';
+            btn.style.backgroundColor = '#9e9e9e'; // 置灰
         } else {
-            btn.innerHTML = '🔲 隐藏小组框';
-            btn.style.backgroundColor = ''; // 恢复CSS默认
-            customBoxes.forEach(b => {
-                b.el.style.display = 'block';
-                b.updateLayout(); // 确保位置正确刷新
+            // 执行恢复：按照之前保存的数据重新生成框
+            savedBoxesData.forEach(boxData => {
+                let seats = boxData.seats.map(id => document.getElementById(id)).filter(s => s !== null);
+                if (seats.length > 0) {
+                    createCustomBox(seats, boxData.color);
+                }
             });
+            
+            savedBoxesData = []; // 清空保存池
+            isBoxesRemoved = false;
+            btn.innerHTML = '🔲 去除所有小组框';
+            btn.style.backgroundColor = ''; // 恢复CSS默认
         }
     }
 
@@ -694,11 +710,12 @@
         let wasMirrored = isMirrored;
         isMirrored = false; 
         
-        // 重新生成时重置小组框的隐藏状态
-        isBoxesHidden = false; 
+        // 重新生成时重置小组框的去除状态
+        isBoxesRemoved = false;
+        savedBoxesData = [];
         let toggleBtn = document.getElementById('btn-toggle-boxes');
         if (toggleBtn) {
-            toggleBtn.innerHTML = '🔲 隐藏小组框';
+            toggleBtn.innerHTML = '🔲 去除所有小组框';
             toggleBtn.style.backgroundColor = '';
         }
         
@@ -950,8 +967,7 @@
         if (draggedElement.id === 'rect-tool') {
             let targetSeat = e.target.closest('.seat:not(.deleted)');
             if (targetSeat) {
-                if (isBoxesHidden) toggleBoxes(); // 新建框时，如果是隐藏状态则自动恢复全显
-                createCustomBox([targetSeat]);
+                createCustomBox([targetSeat]); // 直接创建，不再触发全部恢复
             }
             return; 
         }
@@ -996,8 +1012,7 @@
         if (draggedEl.id === 'rect-tool') {
             let targetSeat = target.closest('.seat:not(.deleted)');
             if (targetSeat) {
-                if (isBoxesHidden) toggleBoxes(); // 新建框时，如果是隐藏状态则自动恢复全显
-                createCustomBox([targetSeat]);
+                createCustomBox([targetSeat]); // 直接创建，不再触发全部恢复
             }
             return; 
         }
