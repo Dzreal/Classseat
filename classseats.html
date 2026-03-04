@@ -72,7 +72,7 @@
     /* 名单池 */
     .pools { display: flex; gap: 10px; }
     .pool-col { flex: 1; min-height: 500px; border: 2px dashed #bbb; border-radius: 6px; padding: 10px; background-color: #fafafa; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .pool-col h3 { margin: 0 0 10px 0; font-size: 16px; color: #666; text-align: center; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    .pool-col h3 { margin: 0 0 10px 0; font-size: 16px; color: #666; text-align: center; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 5px; transition: 0.3s; }
 
     /* 右侧：教室区域 */
     .right-panel {
@@ -307,8 +307,8 @@
     // === 变量声明（严格避免重复声明） ===
     let studentsData = [];
     let isMirrored = false; 
-    let isBoxesRemoved = false; // 新增：记录小组框是否被去除
-    let savedBoxesData = [];    // 新增：保存被去除的小组框数据
+    let isBoxesRemoved = false; // 记录小组框是否被去除
+    let savedBoxesData = [];    // 保存被去除的小组框数据
     let customBoxes = [];
     let colorIndexTracker = 0;
     
@@ -467,6 +467,28 @@
         }
     }
 
+    // === 新增：动态更新名单人数统计 ===
+    function updatePoolCounts() {
+        let h2 = document.querySelector('.list-box h2');
+        let h3Boys = poolBoys.querySelector('h3');
+        let h3Girls = poolGirls.querySelector('h3');
+        
+        if (studentsData.length === 0) {
+            if (h2) h2.innerText = '待分配名单';
+            if (h3Boys) h3Boys.innerText = '男生名单';
+            if (h3Girls) h3Girls.innerText = '女生名单';
+            return;
+        }
+
+        let boysCount = poolBoys.querySelectorAll('.student').length;
+        let girlsCount = poolGirls.querySelectorAll('.student').length;
+        let totalCount = boysCount + girlsCount;
+
+        if (h2) h2.innerText = `待分配名单（${totalCount}人）`;
+        if (h3Boys) h3Boys.innerText = `男生名单（${boysCount}人）`;
+        if (h3Girls) h3Girls.innerText = `女生名单（${girlsCount}人）`;
+    }
+
     function applyImportedData(importedData) {
         if(importedData.studentsData) {
             studentsData = importedData.studentsData;
@@ -523,6 +545,8 @@
             toggleBtn.innerHTML = '🔲 去除所有小组框';
             toggleBtn.style.backgroundColor = '';
         }
+
+        updatePoolCounts();
     }
 
     document.getElementById('file-upload').addEventListener('change', function(e) {
@@ -598,6 +622,7 @@
         });
         sortPool(poolBoys);
         sortPool(poolGirls);
+        updatePoolCounts();
     }
 
     function sortPool(poolElement) {
@@ -613,6 +638,7 @@
         });
         sortPool(poolBoys);
         sortPool(poolGirls);
+        updatePoolCounts();
     }
 
     function toggleMirror() {
@@ -673,7 +699,7 @@
         customBoxes.forEach(b => b.updateLayout());
     }
     
-    // === 新增：彻底去除/恢复小组框功能 ===
+    // === 彻底去除/恢复小组框功能 ===
     function toggleBoxes() {
         let btn = document.getElementById('btn-toggle-boxes');
         
@@ -786,6 +812,7 @@
                             let correctPool = stu.classList.contains('boy') ? poolBoys : poolGirls;
                             correctPool.appendChild(stu);
                             sortPool(correctPool);
+                            updatePoolCounts();
                         }
                         this.classList.add('deleted');
                     };
@@ -830,6 +857,7 @@
         });
 
         if (wasMirrored) toggleMirror();
+        updatePoolCounts();
     }
 
     function randomizeSeats() {
@@ -870,6 +898,7 @@
         });
 
         if (wasMirrored) toggleMirror(); 
+        updatePoolCounts();
     }
 
     function rotateGroups() {
@@ -931,6 +960,7 @@
         sortPool(poolGirls);
 
         if (wasMirrored) toggleMirror(); 
+        updatePoolCounts();
     }
 
     function dragStart(e) {
@@ -967,7 +997,7 @@
         if (draggedElement.id === 'rect-tool') {
             let targetSeat = e.target.closest('.seat:not(.deleted)');
             if (targetSeat) {
-                createCustomBox([targetSeat]); // 直接创建，不再触发全部恢复
+                createCustomBox([targetSeat]); 
             }
             return; 
         }
@@ -1004,6 +1034,7 @@
                 if (target.classList.contains('pool-col')) sortPool(target);
             }
         }
+        updatePoolCounts();
     }
 
     // === 处理原生鼠标长按拖拽通用逻辑 ===
@@ -1012,7 +1043,7 @@
         if (draggedEl.id === 'rect-tool') {
             let targetSeat = target.closest('.seat:not(.deleted)');
             if (targetSeat) {
-                createCustomBox([targetSeat]); // 直接创建，不再触发全部恢复
+                createCustomBox([targetSeat]); 
             }
             return; 
         }
@@ -1053,6 +1084,7 @@
                 if (target.classList.contains('pool-col')) sortPool(target);
             }
         }
+        updatePoolCounts();
     }
 
     // === 手机端 Touch 原生拖拽 ===
