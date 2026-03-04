@@ -15,7 +15,7 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #7b5e43; /* 木质桌面背景色 */
+            background-color: #7b5e43;
             background-image: repeating-linear-gradient(
                 45deg,
                 rgba(0,0,0,0.05) 0px,
@@ -31,10 +31,14 @@
             color: var(--text-color);
         }
 
-        /* 笔记本外壳 */
+        /* 笔记本外壳 - 调整为自适应大尺寸 */
         .notebook {
-            width: 900px;
-            height: 600px;
+            width: 85vw; /* 宽度占据屏幕85% */
+            max-width: 1400px; /* 最大宽度限制 */
+            min-width: 900px; /* 最小宽度限制 */
+            height: 85vh; /* 高度占据屏幕85% */
+            max-height: 900px; /* 最大高度限制 */
+            min-height: 600px; /* 最小高度限制 */
             background: var(--paper-color);
             border-radius: 10px;
             box-shadow: 15px 15px 40px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0,0,0,0.05);
@@ -74,7 +78,7 @@
         /* 左右书页通用 */
         .page {
             flex: 1;
-            padding: 40px;
+            padding: 40px 50px; /* 稍微增加内边距 */
             box-sizing: border-box;
             position: relative;
         }
@@ -118,36 +122,39 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 16px; /* 字体稍微调大 */
         }
 
         .history-item:hover, .history-item.active {
             background: #e2e8f0;
-            box-shadow: inset 2px 0 0 var(--theme-color);
+            box-shadow: inset 4px 0 0 var(--theme-color);
         }
 
         /* GitHub 配置区 */
         .github-settings {
             margin-top: 20px;
-            padding: 15px;
+            padding: 20px;
             background: #f8fafc;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 14px;
         }
         
         .github-settings input {
             width: 100%;
-            margin-bottom: 8px;
-            padding: 6px;
+            margin-bottom: 12px;
+            padding: 8px;
             box-sizing: border-box;
             border: 1px solid #ccc;
             border-radius: 4px;
+            font-family: inherit;
         }
 
         .github-settings label {
             display: block;
-            margin-bottom: 4px;
-            color: #64748b;
+            margin-bottom: 6px;
+            color: #475569;
+            font-weight: bold;
         }
 
         /* 右侧书写区 */
@@ -155,33 +162,35 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            font-size: 16px;
+            margin-bottom: 20px;
+            font-size: 18px;
             color: #555;
+            font-weight: bold;
         }
 
         .weather-selector {
             display: flex;
-            gap: 10px;
+            gap: 15px;
         }
 
         .weather-icon {
             cursor: pointer;
             opacity: 0.4;
             transition: all 0.2s;
-            font-size: 20px;
+            font-size: 24px;
         }
 
         .weather-icon.active {
             opacity: 1;
-            transform: scale(1.2);
+            transform: scale(1.3);
         }
 
         .main-title {
             text-align: center;
-            font-size: 28px;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin-bottom: 25px;
             color: #1a202c;
         }
 
@@ -190,32 +199,32 @@
             flex: 1;
             width: 100%;
             background-color: transparent;
-            background-image: linear-gradient(transparent 31px, var(--line-color) 31px);
-            background-size: 100% 32px;
+            background-image: linear-gradient(transparent 35px, var(--line-color) 35px);
+            background-size: 100% 36px;
             background-attachment: local;
-            line-height: 32px;
-            font-size: 18px;
+            line-height: 36px;
+            font-size: 20px; /* 字体调大以适应大屏幕 */
             border: none;
             outline: none;
             resize: none;
             font-family: inherit;
             color: #2d3748;
-            padding: 0 5px;
+            padding: 0 10px;
         }
 
         /* 底部按钮 */
         .actions {
-            margin-top: 20px;
+            margin-top: 25px;
             display: flex;
             justify-content: space-between;
         }
 
         button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
             transition: background 0.2s;
         }
@@ -235,17 +244,17 @@
         .btn-export:hover { background-color: #059669; }
 
         .status-msg {
-            font-size: 12px;
+            font-size: 14px;
             color: #64748b;
             align-self: center;
-            margin-left: 10px;
+            margin-left: 15px;
             flex: 1;
         }
 
         /* 滚动条美化 */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
@@ -260,16 +269,11 @@
                 </div>
 
             <div class="github-settings">
-                <strong>同步到 GitHub 私有仓库</strong>
-                <label style="margin-top:8px;">Personal Access Token:</label>
-                <input type="password" id="ghToken" placeholder="ghp_xxxxxx...">
-                <label>仓库所有者 (Owner) / 仓库名 (Repo):</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="ghOwner" placeholder="username">
-                    <input type="text" id="ghRepo" placeholder="repository">
-                </div>
-                <label>文件保存路径 (如: data/logs.json):</label>
-                <input type="text" id="ghPath" placeholder="data/logs.json" value="logs.json">
+                <strong>⚙️ GitHub 私有库同步配置</strong>
+                <label style="margin-top:10px;">Personal Access Token:</label>
+                <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                <label>文件保存路径 (可区分不同班级):</label>
+                <input type="text" id="ghPath" placeholder="data/logs_classA.json" value="logs.json">
             </div>
         </div>
 
@@ -299,9 +303,16 @@
     </div>
 
     <script>
+        // =========================================================================
+        // 👇 请在这里填入你的 GitHub 用户名和用于存放座位表/日志的私有仓库名 👇
+        // =========================================================================
+        const GITHUB_OWNER = 'Dzreal'; // 例如: 'zhangsan'
+        const GITHUB_REPO = 'Class-Data';   // 例如: 'class-management'
+        // =========================================================================
+
         // === 1. 初始化与数据结构 ===
         let logsData = JSON.parse(localStorage.getItem('classLogsData')) || {};
-        let currentDateStr = ''; // 当前选中的日期 YYYY-MM-DD
+        let currentDateStr = ''; 
         let editorTimer = null;
 
         const editor = document.getElementById('editor');
@@ -312,12 +323,10 @@
 
         // GitHub DOM
         const ghTokenInput = document.getElementById('ghToken');
-        const ghOwnerInput = document.getElementById('ghOwner');
-        const ghRepoInput = document.getElementById('ghRepo');
         const ghPathInput = document.getElementById('ghPath');
 
-        // 生成铁圈 UI
-        const bindingStr = Array(12).fill('<div class="ring"></div>').join('');
+        // 生成铁圈 UI (根据高度多加几个铁圈)
+        const bindingStr = Array(18).fill('<div class="ring"></div>').join('');
         document.getElementById('binding').innerHTML = bindingStr;
 
         // 获取格式化日期 YYYY-MM-DD
@@ -360,7 +369,7 @@
         // 渲染左侧历史列表
         function renderHistoryList() {
             historyList.innerHTML = '';
-            const sortedDates = Object.keys(logsData).sort((a, b) => new Date(b) - new Date(a)); // 倒序
+            const sortedDates = Object.keys(logsData).sort((a, b) => new Date(b) - new Date(a)); 
             
             sortedDates.forEach(date => {
                 const log = logsData[date];
@@ -372,7 +381,7 @@
             });
         }
 
-        // 加载特定日期的日志到右侧书写区
+        // 加载特定日期的日志
         function loadLog(dateStr) {
             currentDateStr = dateStr;
             const log = logsData[dateStr];
@@ -385,7 +394,7 @@
                 icon.classList.toggle('active', icon.dataset.weather === log.weather);
             });
 
-            renderHistoryList(); // 刷新高亮状态
+            renderHistoryList(); 
             showStatus('已加载本地数据');
         }
 
@@ -399,17 +408,17 @@
                 const text = this.value;
                 const bullet = '\n• ';
                 
-                // 在光标位置插入换行和项目符号
+                // 插入换行和项目符号
                 this.value = text.substring(0, start) + bullet + text.substring(end);
                 
-                // 移动光标到项目符号之后
+                // 移动光标
                 this.selectionStart = this.selectionEnd = start + bullet.length;
                 
                 triggerAutoSave();
             }
         });
 
-        // 监听输入，触发防抖自动保存
+        // 监听输入自动保存
         editor.addEventListener('input', triggerAutoSave);
 
         // 天气点击事件
@@ -426,7 +435,6 @@
 
         // === 3. 数据存取 ===
 
-        // 触发本地自动保存
         function triggerAutoSave() {
             logsData[currentDateStr].content = editor.value;
             saveToLocal();
@@ -449,47 +457,44 @@
             }, 3000);
         }
 
-        // === 4. GitHub API 同步逻辑 ===
+        // === 4. GitHub API 同步逻辑 (支持直接覆盖更新) ===
 
-        // GitHub 解决中文 Base64 编码的函数
         function utf8_to_b64(str) {
             return window.btoa(unescape(encodeURIComponent(str)));
         }
 
         function loadGitHubConfig() {
             ghTokenInput.value = localStorage.getItem('gh_token') || '';
-            ghOwnerInput.value = localStorage.getItem('gh_owner') || '';
-            ghRepoInput.value = localStorage.getItem('gh_repo') || '';
             ghPathInput.value = localStorage.getItem('gh_path') || 'logs.json';
         }
 
         function saveGitHubConfig() {
             localStorage.setItem('gh_token', ghTokenInput.value.trim());
-            localStorage.setItem('gh_owner', ghOwnerInput.value.trim());
-            localStorage.setItem('gh_repo', ghRepoInput.value.trim());
             localStorage.setItem('gh_path', ghPathInput.value.trim());
         }
 
         document.getElementById('btnSave').addEventListener('click', async () => {
-            // 先强制保存一次本地最新内容和 GitHub 配置
             logsData[currentDateStr].content = editor.value;
             saveToLocal();
             saveGitHubConfig();
 
             const token = ghTokenInput.value.trim();
-            const owner = ghOwnerInput.value.trim();
-            const repo = ghRepoInput.value.trim();
             const path = ghPathInput.value.trim();
 
-            if (!token || !owner || !repo || !path) {
-                alert('请先在左下角补全 GitHub 的同步配置参数！本地已保存。');
+            if (!token || !path) {
+                alert('请填写 GitHub Token 和 保存路径！');
+                return;
+            }
+
+            if (GITHUB_OWNER === '在这里填写你的GitHub用户名' || GITHUB_REPO === '在这里填写你的私有仓库名') {
+                alert('请先用代码编辑器打开 html 文件，在 <script> 开头填入你的 GITHUB_OWNER 和 GITHUB_REPO !');
                 return;
             }
 
             showStatus('正在同步到 GitHub...');
             document.getElementById('btnSave').disabled = true;
 
-            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+            const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
             const headers = {
                 'Authorization': `token ${token}`,
                 'Accept': 'application/vnd.github.v3+json',
@@ -497,27 +502,27 @@
             };
 
             try {
-                // 1. 先尝试 GET 获取该文件的 sha (更新文件必需)
+                // 1. 先通过 GET 获取文件的 sha 值（如果文件已存在，必须要传入 sha 才能覆盖更新）
                 let sha = null;
                 const getRes = await fetch(apiUrl, { method: 'GET', headers });
                 
                 if (getRes.status === 200) {
                     const fileData = await getRes.json();
-                    sha = fileData.sha; // 获取已存在文件的 sha
+                    sha = fileData.sha; // 获取到已有文件的标识符，确保持续写入同一个文档
                 } else if (getRes.status !== 404) {
-                    throw new Error('获取仓库文件信息失败，请检查 Token 权限或网络。');
+                    throw new Error('获取仓库信息失败，请检查 Token 权限或配置。');
                 }
 
-                // 2. 将本地的所有日志数据转为 JSON 并进行 Base64 编码
+                // 2. 将本地数据转为 JSON 并编码
                 const contentStr = JSON.stringify(logsData, null, 2);
                 const encodedContent = utf8_to_b64(contentStr);
 
-                // 3. PUT 请求上传/更新文件
+                // 3. 发送 PUT 请求进行创建或覆盖更新
                 const bodyData = {
                     message: `更新班级日志: ${currentDateStr}`,
                     content: encodedContent
                 };
-                if (sha) bodyData.sha = sha; // 如果文件存在则附加 sha 以执行更新
+                if (sha) bodyData.sha = sha; // 附加 sha，GitHub 就会执行覆盖更新而不是新建
 
                 const putRes = await fetch(apiUrl, {
                     method: 'PUT',
@@ -526,7 +531,7 @@
                 });
 
                 if (putRes.status === 200 || putRes.status === 201) {
-                    showStatus('✅ 成功同步到 GitHub!');
+                    showStatus('✅ 成功同步并覆盖到 GitHub!');
                 } else {
                     throw new Error(`写入失败: 状态码 ${putRes.status}`);
                 }
@@ -539,7 +544,7 @@
             }
         });
 
-        // === 5. 导出为 TXT 功能 ===
+        // === 5. 导出为 TXT ===
         document.getElementById('btnExport').addEventListener('click', () => {
             const log = logsData[currentDateStr];
             const content = `日期: ${log.date} ${log.weekday}\n天气: ${log.weather}\n---\n【今日班级纪要】\n\n${log.content}`;
