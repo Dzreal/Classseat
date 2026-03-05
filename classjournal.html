@@ -469,7 +469,7 @@
                 <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                 <label>文件保存路径 (可区分不同班级):</label>
                 <input type="text" id="ghPath" placeholder="data/logs_classA.json" value="logs.json">
-                <button class="btn-pull" id="btnPull">⬇️ 换设备：先点此从云端读取</button>
+                <button class="btn-pull" id="btnPull">⬇️ 强制从云端拉取 (覆盖本地)</button>
             </div>
         </div>
 
@@ -504,7 +504,7 @@
             
             <div class="actions">
                 <div style="display:flex; align-items:center;">
-                    <button class="action-btn btn-save" id="btnSave">保存并同步至云端</button>
+                    <button class="action-btn btn-save" id="btnSave">🔄 保存并同步 (智能合并)</button>
                     <span class="status-msg" id="statusMsg"></span>
                 </div>
                 <button class="action-btn btn-export" id="btnExport">导出为 TXT</button>
@@ -777,7 +777,7 @@
             localStorage.setItem('gh_path', ghPathInput.value.trim());
         }
 
-        // --- 新增：从云端读取/恢复数据逻辑 ---
+        // --- 纯手动拉取/覆盖数据逻辑 (重命名为强制拉取，避免误操作) ---
         document.getElementById('btnPull').addEventListener('click', async () => {
             saveGitHubConfig();
             const token = ghTokenInput.value.trim();
@@ -787,7 +787,7 @@
                 alert('请先填写访问令牌(Token)和保存路径！'); return;
             }
 
-            const confirmPull = confirm('此操作将会用云端的数据覆盖你当前浏览器内的记录。如果在换设备后第一次使用，请点击确定。');
+            const confirmPull = confirm('⚠️ 警告：此操作将会用云端的数据【强制覆盖】你当前浏览器内的所有记录。请确认你真的想丢弃本地未同步的修改，或者你正在一台全新设备上。');
             if (!confirmPull) return;
 
             showStatus('正在从云端读取...');
@@ -806,7 +806,6 @@
                     const fileData = await getRes.json();
                     const decodedContent = b64_to_utf8(fileData.content);
                     
-                    // 解析数据并覆盖本地存储
                     const cloudData = JSON.parse(decodedContent);
                     if (Object.keys(cloudData).length > 0) {
                         logsData = cloudData;
@@ -816,7 +815,7 @@
                         const todayStr = getFormattedDate(new Date());
                         ensureLogExists(todayStr);
                         renderHistoryList();
-                        loadLog(todayStr); // 默认加载今天的数据（即便今天是空的）
+                        loadLog(todayStr); 
                         
                         alert('✅ 成功从云端恢复数据！');
                         showStatus('数据已恢复');
@@ -824,7 +823,7 @@
                         alert('云端文件数据为空。');
                     }
                 } else if (getRes.status === 404) {
-                    alert('云端没有找到该文件，这可能是一个新的路径。你可以直接点击【保存并同步至云端】来创建它。');
+                    alert('云端没有找到该文件。如果是新文件，请直接在右侧书写并点击【保存并同步】来创建。');
                     showStatus('云端文件不存在');
                 } else {
                     throw new Error('获取失败，请检查 Token 权限或网络。状态码: ' + getRes.status);
@@ -838,7 +837,7 @@
             }
         });
 
-        // --- 保存到云端逻辑 ---
+        // --- 核心优化：保存到云端逻辑 (先读取 -> 智能合并 -> 再推送，无文件则创建) ---
         document.getElementById('btnSave').addEventListener('click', async () => {
             triggerAutoSave();
             saveGitHubConfig();
@@ -850,7 +849,7 @@
                 alert('请填写 Token 和 保存路径！'); return;
             }
 
-            showStatus('正在同步到云端...');
+            showStatus('正在请求云端数据...');
             document.getElementById('btnSave').disabled = true;
 
             const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
@@ -862,24 +861,67 @@
 
             try {
                 let sha = null;
+                let cloudData = {};
+                
+                // 第 1 步：尝试先获取云端文件
                 const getRes = await fetch(apiUrl, { method: 'GET', headers });
                 
                 if (getRes.status === 200) {
-                    sha = (await getRes.json()).sha; 
-                } else if (getRes.status !== 404) {
-                    throw new Error('获取云端信息失败，请检查 Token。');
+                    // 第 2 步：文件存在，执行智能合并
+                    showStatus('正在合并云端与本地数据...');
+                    const fileData = await getRes.json();
+                    sha = fileData.sha; 
+                    const decodedContent = b64_to_utf8(fileData.content);
+                    
+                    try {
+                        cloudData = JSON.parse(decodedContent);
+                    } catch (e) {
+                        console.error('云端数据格式错误，跳过合并', e);
+                    }
+
+                    // 智能合并逻辑：优先保留云端数据，除非本地数据有实质性修改
+                    for (const date in cloudData) {
+                        if (!logsData[date]) {
+                            // 本地完全没有这天的记录，直接拉取云端
+                            logsData[date] = cloudData[date];
+                        } else {
+                            // 本地有这天的记录，检查是否为空白模板
+                            const localGood = (logsData[date].contentGood || '').replace(/[•\s\n\r]/g, '');
+                            const localBad = (logsData[date].contentBad || '').replace(/[•\s\n\r]/g, '');
+                            
+                            if (localGood === '' && localBad === '') {
+                                // 本地只是系统默认生成的空壳，安全替换为云端历史数据，防止覆盖清空！
+                                logsData[date] = cloudData[date];
+                            }
+                            // 如果本地有实际填写的文字，则保留本地最新修改，覆盖云端的该天数据
+                        }
+                    }
+                    
+                    saveToLocal(); // 更新本地缓存
+                    renderHistoryList(); // 刷新左侧列表
+                    
+                } else if (getRes.status === 404) {
+                    // 第 3 步：云端无文件，正常跳过合并步骤，直接走推送新建逻辑
+                    console.log('云端文件不存在，将创建新文件。');
+                    showStatus('云端无文件，准备创建...');
+                } else {
+                    throw new Error('获取云端信息失败，请检查 Token 和网络。');
                 }
 
+                // 第 4 步：将合并或新建后的数据推送到云端
+                showStatus('正在推送到云端...');
                 const encodedContent = utf8_to_b64(JSON.stringify(logsData, null, 2));
-                const bodyData = { message: `更新班级日志: ${currentDateStr}`, content: encodedContent };
-                if (sha) bodyData.sha = sha; 
+                const bodyData = { message: `自动同步并合并班级日志: ${currentDateStr}`, content: encodedContent };
+                if (sha) bodyData.sha = sha; // 提供 sha 值用于覆盖旧文件
 
                 const putRes = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(bodyData) });
 
                 if (putRes.status === 200 || putRes.status === 201) {
-                    showStatus('✅ 成功同步并覆盖到云端!');
+                    showStatus('✅ 成功合并并同步至云端!');
+                    // 重新渲染当前查看的日志，以免合并云端数据后没显示出来
+                    loadLog(currentDateStr);
                 } else {
-                    throw new Error(`写入失败: 状态码 ${putRes.status}`);
+                    throw new Error(`写入云端失败: 状态码 ${putRes.status}`);
                 }
             } catch (error) {
                 console.error(error);
