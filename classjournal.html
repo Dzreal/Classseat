@@ -192,6 +192,8 @@
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             font-size: 13px;
+            display: flex;
+            flex-direction: column;
         }
         
         .github-settings input {
@@ -209,6 +211,23 @@
             margin-bottom: 4px;
             color: #475569;
             font-weight: bold;
+        }
+
+        .btn-pull {
+            margin-top: 5px;
+            background-color: #f59e0b;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-pull:hover {
+            background-color: #d97706;
         }
 
         /* 右侧书写区 */
@@ -332,7 +351,7 @@
             align-items: center;
         }
 
-        button {
+        button.action-btn {
             padding: 12px 24px;
             border: none;
             border-radius: 6px;
@@ -360,7 +379,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         /* ========================================= */
-        /* 📱 手机端/小屏幕自适应适配 (本次新增) */
+        /* 📱 手机端/小屏幕自适应适配 */
         /* ========================================= */
         @media screen and (max-width: 900px) {
             body {
@@ -376,24 +395,20 @@
                 height: auto;
                 min-height: unset;
                 max-height: unset;
-                flex-direction: column; /* 改为上下堆叠 */
+                flex-direction: column;
                 box-shadow: 5px 5px 20px rgba(0, 0, 0, 0.2);
             }
-            .binding {
-                display: none; /* 手机端隐藏铁圈节省空间 */
-            }
-            .page {
-                padding: 20px; /* 缩小手机端内边距 */
-            }
+            .binding { display: none; }
+            .page { padding: 20px; }
             .page.left {
                 border-right: none;
                 border-bottom: 2px dashed var(--line-color);
-                max-height: 45vh; /* 目录区在手机上限高，支持滑动 */
+                max-height: 45vh;
                 overflow-y: auto;
             }
             .page.right {
                 border-left: none;
-                min-height: 60vh; /* 保证书写区有足够高度 */
+                min-height: 60vh;
             }
             .header-info {
                 flex-direction: column;
@@ -405,7 +420,7 @@
                 letter-spacing: 2px;
             }
             textarea.editor {
-                font-size: 16px; /* 字体稍微缩小适配小屏 */
+                font-size: 16px;
                 line-height: 32px;
                 background-size: 100% 32px;
                 background-image: linear-gradient(transparent 31px, var(--line-color) 31px);
@@ -425,8 +440,8 @@
                 margin-left: 0;
                 text-align: center;
             }
-            button {
-                width: 100%; /* 按钮铺满屏幕宽度，方便单手点击 */
+            button.action-btn {
+                width: 100%;
                 padding: 15px; 
             }
         }
@@ -454,6 +469,7 @@
                 <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                 <label>文件保存路径 (可区分不同班级):</label>
                 <input type="text" id="ghPath" placeholder="data/logs_classA.json" value="logs.json">
+                <button class="btn-pull" id="btnPull">⬇️ 换设备：先点此从云端读取</button>
             </div>
         </div>
 
@@ -488,10 +504,10 @@
             
             <div class="actions">
                 <div style="display:flex; align-items:center;">
-                    <button class="btn-save" id="btnSave">保存并同步至云端</button>
+                    <button class="action-btn btn-save" id="btnSave">保存并同步至云端</button>
                     <span class="status-msg" id="statusMsg"></span>
                 </div>
-                <button class="btn-export" id="btnExport">导出为 TXT</button>
+                <button class="action-btn btn-export" id="btnExport">导出为 TXT</button>
             </div>
         </div>
     </div>
@@ -564,7 +580,6 @@
             }
         }
 
-        // HTML 转义，防止搜索关键词破坏 DOM
         function escapeHtml(unsafe) {
             return unsafe
                  .replace(/&/g, "&amp;")
@@ -578,13 +593,9 @@
             renderHistoryList(this.value);
         });
 
-        // --- 核心更新：渲染列表与多关键字高级搜索 ---
         function renderHistoryList(filterTerm = '') {
             historyList.innerHTML = '';
-            // 依然保持时间倒序（最新的排在最上面）
             const sortedDates = Object.keys(logsData).sort((a, b) => new Date(b) - new Date(a)); 
-            
-            // 按空格分割关键词，并过滤掉空字符串
             const keywords = filterTerm.trim().toLowerCase().split(/\s+/).filter(k => k);
 
             sortedDates.forEach(date => {
@@ -592,7 +603,6 @@
                 const cGood = log.contentGood || '';
                 const cBad = log.contentBad || '';
                 
-                // 1. 空记录过滤：如果这天完全没写内容（只有自带的圆点和空格换行），直接跳过，不在左边显示！
                 const textG = cGood.replace(/[•\s\n\r]/g, '');
                 const textB = cBad.replace(/[•\s\n\r]/g, '');
                 if (textG === '' && textB === '') return; 
@@ -604,10 +614,8 @@
                     let matchLine = '';
                     let emojiPrefix = '';
                     
-                    // 检查 😃 区域，按行分割
                     const goodLines = cGood.split('\n');
                     for (let line of goodLines) {
-                        // 必须所有关键字都在同一行内才算匹配
                         if (keywords.every(kw => line.toLowerCase().includes(kw))) {
                             isMatch = true;
                             matchLine = line;
@@ -616,7 +624,6 @@
                         }
                     }
                     
-                    // 检查 🙄 区域
                     if (!isMatch) {
                         const badLines = cBad.split('\n');
                         for (let line of badLines) {
@@ -629,9 +636,8 @@
                         }
                     }
 
-                    if (!isMatch) return; // 这天的记录中没有哪一行同时包含所有关键词
+                    if (!isMatch) return; 
 
-                    // 高亮该行的所有关键字
                     let highlightedLine = escapeHtml(matchLine);
                     const escapedKeywords = keywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
                     const combinedRegex = new RegExp(`(${escapedKeywords.join('|')})`, 'gi');
@@ -639,7 +645,6 @@
                     
                     snippetHtml = `<div class="history-snippet">${emojiPrefix} ${highlightedLine}</div>`;
                 } else {
-                    // 无搜索时展示摘要
                     let previewText = cGood.replace(/• |\n/g, ' ').trim();
                     let emojiPrefix = '😃';
                     if (!previewText) {
@@ -736,7 +741,6 @@
             logsData[currentDateStr].contentBad = editorBad.value;
             saveToLocal();
             
-            // 实时打字时，如果原本是空记录，一打字就会让它瞬间出现在左边列表中
             if(!searchInput.value) {
                 renderHistoryList();
             }
@@ -755,7 +759,13 @@
             setTimeout(() => { if(statusMsg.textContent === msg) statusMsg.textContent = ''; }, 3000);
         }
 
-        function utf8_to_b64(str) { return window.btoa(unescape(encodeURIComponent(str))); }
+        // 编码解码工具
+        function utf8_to_b64(str) { 
+            return window.btoa(unescape(encodeURIComponent(str))); 
+        }
+        function b64_to_utf8(str) { 
+            return decodeURIComponent(escape(window.atob(str))); 
+        }
 
         function loadGitHubConfig() {
             ghTokenInput.value = localStorage.getItem('gh_token') || '';
@@ -767,6 +777,68 @@
             localStorage.setItem('gh_path', ghPathInput.value.trim());
         }
 
+        // --- 新增：从云端读取/恢复数据逻辑 ---
+        document.getElementById('btnPull').addEventListener('click', async () => {
+            saveGitHubConfig();
+            const token = ghTokenInput.value.trim();
+            const path = ghPathInput.value.trim();
+
+            if (!token || !path) {
+                alert('请先填写访问令牌(Token)和保存路径！'); return;
+            }
+
+            const confirmPull = confirm('此操作将会用云端的数据覆盖你当前浏览器内的记录。如果在换设备后第一次使用，请点击确定。');
+            if (!confirmPull) return;
+
+            showStatus('正在从云端读取...');
+            document.getElementById('btnPull').disabled = true;
+
+            const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            };
+
+            try {
+                const getRes = await fetch(apiUrl, { method: 'GET', headers });
+                
+                if (getRes.status === 200) {
+                    const fileData = await getRes.json();
+                    const decodedContent = b64_to_utf8(fileData.content);
+                    
+                    // 解析数据并覆盖本地存储
+                    const cloudData = JSON.parse(decodedContent);
+                    if (Object.keys(cloudData).length > 0) {
+                        logsData = cloudData;
+                        saveToLocal();
+                        
+                        // 重新初始化页面以显示最新数据
+                        const todayStr = getFormattedDate(new Date());
+                        ensureLogExists(todayStr);
+                        renderHistoryList();
+                        loadLog(todayStr); // 默认加载今天的数据（即便今天是空的）
+                        
+                        alert('✅ 成功从云端恢复数据！');
+                        showStatus('数据已恢复');
+                    } else {
+                        alert('云端文件数据为空。');
+                    }
+                } else if (getRes.status === 404) {
+                    alert('云端没有找到该文件，这可能是一个新的路径。你可以直接点击【保存并同步至云端】来创建它。');
+                    showStatus('云端文件不存在');
+                } else {
+                    throw new Error('获取失败，请检查 Token 权限或网络。状态码: ' + getRes.status);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('读取失败: ' + error.message);
+                showStatus('读取失败');
+            } finally {
+                document.getElementById('btnPull').disabled = false;
+            }
+        });
+
+        // --- 保存到云端逻辑 ---
         document.getElementById('btnSave').addEventListener('click', async () => {
             triggerAutoSave();
             saveGitHubConfig();
