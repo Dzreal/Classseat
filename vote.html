@@ -17,6 +17,39 @@
             overflow: hidden; /* 防止出现多余的滚动条 */
         }
         
+        /* --- 全局固定左上角的菜单按钮 --- */
+        .menu-toggle {
+            position: fixed;
+            top: 15px;
+            left: 20px;
+            z-index: 1005; /* 层级高于左侧面板，确保不会被遮挡 */
+            background: transparent;
+            color: #2c3e50; /* 面板闭合时，处于浅色背景，字体用深色 */
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s ease, background-color 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 侧边栏打开时，按钮处于深色面板上方，自动变为白色 */
+        body.sidebar-open .menu-toggle {
+            color: #ffffff;
+        }
+
+        body.sidebar-open .menu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
         /* --- 核心动画区域：左侧配置区 --- */
         .left-panel { 
             width: 0; /* 默认闭合 */
@@ -26,10 +59,10 @@
             flex-shrink: 0;
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 贝塞尔曲线，模拟原生弹出的顺滑感 */
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            z-index: 10;
+            z-index: 1000;
         }
 
-        .left-panel.active {
+        body.sidebar-open .left-panel {
             width: 400px; /* 展开后的宽度 */
             max-width: 85vw; /* 适配较窄的屏幕 */
         }
@@ -39,13 +72,13 @@
             width: 400px; /* 保持固定宽度，由父级面板遮挡 */
             max-width: 85vw;
             height: 100vh;
-            padding: 20px;
+            padding: 70px 20px 20px 20px; /* 顶部留出 70px 空间，防止和菜单按钮重叠 */
             overflow-y: auto;
             opacity: 0;
             transition: opacity 0.2s ease;
         }
 
-        .left-panel.active .left-panel-content {
+        body.sidebar-open .left-panel-content {
             opacity: 1;
             transition: opacity 0.3s ease 0.1s; /* 展开时延迟一点淡入，显得更柔和 */
         }
@@ -54,40 +87,11 @@
         .right-panel { 
             flex-grow: 1; 
             height: 100vh;
-            display: flex;
-            flex-direction: column;
+            padding: 70px 40px 40px 40px; /* 顶部留出空间与左侧对齐 */
+            overflow-y: auto; 
             background-color: #ffffff; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-        }
-
-        /* 顶部导航栏：放置按钮的地方，自然联动 */
-        .top-bar {
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .menu-toggle {
-            background: transparent;
-            color: #2c3e50;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-        }
-        
-        .menu-toggle:hover { background: #f1f3f5; }
-
-        .vote-container {
-            flex-grow: 1;
-            padding: 10px 40px 40px 40px;
-            overflow-y: auto;
         }
 
         /* --- 控件与卡片样式 --- */
@@ -95,13 +99,13 @@
         .config-section h3 { margin-top: 0; color: #1abc9c; font-size: 1.1em; border-bottom: 1px solid #455a64; padding-bottom: 10px; }
         input[type="text"], input[type="password"], textarea, select { width: 100%; padding: 10px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; }
         textarea { resize: vertical; min-height: 80px; }
-        button { background-color: #1abc9c; color: white; border: none; padding: 12px 20px; margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: background 0.3s; }
-        button:hover { background-color: #16a085; }
-        button.secondary { background-color: #3498db; }
-        button.secondary:hover { background-color: #2980b9; }
-        button.danger { background-color: #e74c3c; }
-        button.danger:hover { background-color: #c0392b; }
-        button.small-btn { padding: 6px 10px; font-size: 13px; width: auto; margin: 0; }
+        button.action-btn { background-color: #1abc9c; color: white; border: none; padding: 12px 20px; margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: background 0.3s; }
+        button.action-btn:hover { background-color: #16a085; }
+        button.action-btn.secondary { background-color: #3498db; }
+        button.action-btn.secondary:hover { background-color: #2980b9; }
+        button.action-btn.danger { background-color: #e74c3c; }
+        button.action-btn.danger:hover { background-color: #c0392b; }
+        button.action-btn.small-btn { padding: 6px 10px; font-size: 13px; width: auto; margin: 0; }
         
         .hidden { display: none !important; }
 
@@ -127,25 +131,29 @@
 </head>
 <body>
 
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <span style="font-size: 22px; line-height: 1;">☰</span> <span>配置面板</span>
+    </button>
+
     <div class="left-panel" id="leftPanel">
         <div class="left-panel-content">
             <div id="loginView">
-                <h2 style="text-align: center; margin-top: 10px;">管理员权限验证</h2>
+                <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
                 <input type="password" id="adminPwd" placeholder="请输入管理员密码" autocomplete="off">
-                <button onclick="verifyPassword()">解锁配置区</button>
+                <button class="action-btn" onclick="verifyPassword()">解锁配置区</button>
                 <p style="font-size: 12px; color: #95a5a6; text-align: center;">默认演示密码：123</p>
             </div>
 
             <div id="configView" class="hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #455a64; margin-bottom: 15px; padding-bottom: 10px;">
                     <h2 style="margin: 0;">设置面板</h2>
-                    <button onclick="lockConfig()" class="danger small-btn">退出锁定</button>
+                    <button class="action-btn danger small-btn" onclick="lockConfig()">退出锁定</button>
                 </div>
                 
                 <div class="config-section">
                     <h3>1. 班级名单录入 (Excel导入)</h3>
                     <input type="file" id="excelUpload" accept=".xlsx, .xls" style="display: none;" onchange="importExcel(event)">
-                    <button onclick="document.getElementById('excelUpload').click()">选择 Excel 文件导入</button>
+                    <button class="action-btn" onclick="document.getElementById('excelUpload').click()">选择 Excel 文件导入</button>
                     <p style="font-size: 12px; color: #bdc3c7; margin: 5px 0;">说明：Excel第一列需为“学号”，第二列需为“姓名”。已保存的名单会自动加载。</p>
                     <p id="classDataStatus" style="font-size: 14px; font-weight: bold; margin-top: 10px; color: #f39c12;">当前未录入名单</p>
                 </div>
@@ -160,53 +168,45 @@
                     <textarea id="qOptions" placeholder="请输入选项，用英文逗号或回车分隔。例如：A. 选项一, B. 选项二"></textarea>
                     
                     <div style="display: flex; gap: 10px;">
-                        <button id="addQuestionBtn" onclick="addQuestion()" class="secondary">添加该题目</button>
-                        <button id="cancelEditBtn" onclick="cancelEdit()" class="hidden" style="background-color: #7f8c8d;">取消编辑</button>
+                        <button class="action-btn secondary" id="addQuestionBtn" onclick="addQuestion()">添加该题目</button>
+                        <button class="action-btn hidden" id="cancelEditBtn" onclick="cancelEdit()" style="background-color: #7f8c8d;">取消编辑</button>
                     </div>
                     
                     <div id="questionListInfo" style="margin-top: 15px; font-size: 14px; font-weight: bold; color: #1abc9c;">当前共 0 题</div>
                     <div id="questionListContainer" style="margin-bottom: 15px;">
                         </div>
 
-                    <button onclick="clearQuestions()" class="danger">清空所有题目</button>
+                    <button class="action-btn danger" onclick="clearQuestions()">清空所有题目</button>
                 </div>
 
                 <div class="config-section">
                     <h3>3. 数据管理</h3>
                     <input type="file" id="uploadData" accept=".json" style="display: none;" onchange="importData(event)">
-                    <button onclick="document.getElementById('uploadData').click()" class="secondary">上传已有投票数据 (.json)</button>
-                    <button onclick="exportData()" class="secondary">下载当前投票数据 (.json)</button>
-                    <button onclick="showVisualization()" style="margin-top: 15px;">可视化投票结果</button>
-                    <button onclick="clearVotes()" class="danger" style="margin-top: 10px;">清空历史投票记录</button>
+                    <button class="action-btn secondary" onclick="document.getElementById('uploadData').click()">上传已有投票数据 (.json)</button>
+                    <button class="action-btn secondary" onclick="exportData()">下载当前投票数据 (.json)</button>
+                    <button class="action-btn" onclick="showVisualization()" style="margin-top: 15px;">可视化投票结果</button>
+                    <button class="action-btn danger" onclick="clearVotes()" style="margin-top: 10px;">清空历史投票记录</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="right-panel" id="rightPanel">
-        <div class="top-bar">
-            <button class="menu-toggle" onclick="toggleSidebar()">
-                <span>☰</span> <span>配置面板</span>
-            </button>
+        <div class="vote-header">
+            <h1 style="color: #2c3e50; margin-top: 0;">班级投票系统</h1>
+            <p style="color: #7f8c8d; font-size: 18px;">请验证您的身份后完成投票，完成后将设备传给下一位同学。</p>
         </div>
 
-        <div class="vote-container" id="voteContainer">
-            <div class="vote-header">
-                <h1 style="color: #2c3e50; margin-top: 0;">班级投票系统</h1>
-                <p style="color: #7f8c8d; font-size: 18px;">请验证您的身份后完成投票，完成后将设备传给下一位同学。</p>
-            </div>
-
-            <div class="student-auth">
-                <input type="text" id="studentId" placeholder="请输入您的学号 (如: 01)" autocomplete="off">
-                <input type="text" id="studentName" placeholder="请输入您的姓名 (如: 张三)" autocomplete="off">
-            </div>
-
-            <div id="votingArea">
-                <p style="text-align: center; color: #95a5a6; font-size: 18px; margin-top: 50px;">请等待老师配置题目...</p>
-            </div>
-
-            <button id="submitBtn" class="submit-vote-btn hidden" onclick="submitVote()">确认提交并传给下一位</button>
+        <div class="student-auth">
+            <input type="text" id="studentId" placeholder="请输入您的学号 (如: 01)" autocomplete="off">
+            <input type="text" id="studentName" placeholder="请输入您的姓名 (如: 张三)" autocomplete="off">
         </div>
+
+        <div id="votingArea">
+            <p style="text-align: center; color: #95a5a6; font-size: 18px; margin-top: 50px;">请等待老师配置题目...</p>
+        </div>
+
+        <button class="action-btn submit-vote-btn hidden" id="submitBtn" onclick="submitVote()">确认提交并传给下一位</button>
     </div>
 
     <div id="visualModal" class="modal hidden">
@@ -218,7 +218,6 @@
     </div>
 
     <script>
-        // 核心数据结构
         let appData = {
             students: [],   
             questions: [],  
@@ -238,9 +237,8 @@
         // --- 侧边栏及权限控制 ---
 
         function toggleSidebar() {
-            const panel = document.getElementById('leftPanel');
-            // 通过切换 active 类来触发宽度动画
-            panel.classList.toggle('active');
+            // 通过切换 body 的 class 来同时控制左侧面板展开、右侧内容被挤压、以及菜单按钮颜色的变化
+            document.body.classList.toggle('sidebar-open');
         }
 
         function verifyPassword() {
@@ -257,7 +255,9 @@
             document.getElementById('adminPwd').value = '';
             document.getElementById('configView').classList.add('hidden');
             document.getElementById('loginView').classList.remove('hidden');
-            toggleSidebar(); // 收起侧边栏
+            
+            // 退出时自动收起侧边栏
+            document.body.classList.remove('sidebar-open');
             setTimeout(() => alert("已安全退出配置区，需重新输入密码进入。"), 300);
         }
 
@@ -421,8 +421,8 @@
                         <strong>${index + 1}.</strong> ${q.title} <span style="color:#95a5a6; font-size:12px;">(${qTypeStr})</span>
                     </div>
                     <div style="display: flex; gap: 5px;">
-                        <button class="secondary small-btn" onclick="editQuestion(${q.id})" style="background-color: #f39c12;">编辑</button>
-                        <button class="danger small-btn" onclick="deleteSingleQuestion(${q.id})">删除</button>
+                        <button class="action-btn secondary small-btn" onclick="editQuestion(${q.id})" style="background-color: #f39c12;">编辑</button>
+                        <button class="action-btn danger small-btn" onclick="deleteSingleQuestion(${q.id})">删除</button>
                     </div>
                 </div>`;
                 containerObj.innerHTML += html;
@@ -570,7 +570,7 @@
             document.getElementById('studentName').value = '';
             const allInputs = document.querySelectorAll('#votingArea input[type="radio"], #votingArea input[type="checkbox"]');
             allInputs.forEach(input => input.checked = false);
-            document.getElementById('voteContainer').scrollTop = 0;
+            document.getElementById('rightPanel').scrollTop = 0;
         }
 
         // --- 数据可视化 ---
