@@ -9,7 +9,7 @@
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; padding: 0; display: flex; height: 100vh; background-color: #f4f7f6; overflow-x: hidden; }
         
-        /* 侧边栏呼出按钮 */
+        /* 侧边栏呼出按钮：修复了宽度100%的问题 */
         .menu-toggle {
             position: fixed;
             top: 20px;
@@ -22,6 +22,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 20px;
+            width: auto; /* 关键修复：防止被全局 button width:100% 污染 */
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: background 0.3s;
         }
@@ -91,8 +92,8 @@
             justify-content: space-between;
             align-items: center;
             background: #2c3e50;
-            padding: 8px;
-            margin-top: 5px;
+            padding: 10px;
+            margin-top: 8px;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -153,7 +154,11 @@
                     <option value="checkbox">多选题</option>
                 </select>
                 <textarea id="qOptions" placeholder="请输入选项，用英文逗号或回车分隔。例如：A. 选项一, B. 选项二"></textarea>
-                <button onclick="addQuestion()" class="secondary">添加该题目</button>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="addQuestionBtn" onclick="addQuestion()" class="secondary">添加该题目</button>
+                    <button id="cancelEditBtn" onclick="cancelEdit()" class="hidden" style="background-color: #7f8c8d;">取消编辑</button>
+                </div>
                 
                 <div id="questionListInfo" style="margin-top: 15px; font-size: 14px; font-weight: bold; color: #1abc9c;">当前共 0 题</div>
                 <div id="questionListContainer" style="margin-bottom: 15px;">
@@ -202,14 +207,14 @@
     <script>
         // 核心数据结构
         let appData = {
-            students: [],   // {id: "01", name: "张三"}
-            questions: [],  // {id: 1, title: "...", type: "radio", options: ["A", "B"]}
-            votes: []       // {studentId: "01", answers: { "q_1": ["A"] }}
+            students: [],   
+            questions: [],  
+            votes: []       
         };
 
-        const ADMIN_PWD = "123"; // 可自行修改默认密码
+        const ADMIN_PWD = "123"; 
+        let editingQuestionId = null; // 用于记录当前正在编辑的题目ID
 
-        // 页面加载时初始化数据
         window.onload = function() {
             loadFromLocal();
             renderQuestionList();
@@ -242,14 +247,10 @@
         }
 
         function lockConfig() {
-            // 清空密码框
             document.getElementById('adminPwd').value = '';
-            // 切换视图回登录界面
             document.getElementById('configView').classList.add('hidden');
             document.getElementById('loginView').classList.remove('hidden');
-            // 收起侧边栏
             toggleSidebar();
-            // 轻提示
             setTimeout(() => alert("已安全退出配置区，需重新输入密码进入。"), 300);
         }
 
@@ -263,25 +264,18 @@
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    // 读取工作簿
                     const workbook = XLSX.read(data, {type: 'array'});
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    
-                    // 将表格转换为二维数组
                     const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
                     
                     let newStudents = [];
-                    // 遍历行
                     for (let i = 0; i < json.length; i++) {
                         let row = json[i];
-                        // 确保至少有两列数据且不为空
                         if (row.length >= 2 && row[0] != null && row[1] != null) {
                             const idStr = String(row[0]).trim();
                             const nameStr = String(row[1]).trim();
-                            // 跳过表头(如果第一行写了 学号/姓名 等字眼)
                             if (idStr === '学号' || idStr.toLowerCase() === 'id') continue;
-                            
                             newStudents.push({ id: idStr, name: nameStr });
                         }
                     }
@@ -300,7 +294,7 @@
                 }
             };
             reader.readAsArrayBuffer(file);
-            event.target.value = ''; // 允许重复上传同一个文件
+            event.target.value = ''; 
         }
 
         function updateClassStatus() {
@@ -326,7 +320,6 @@
                 return;
             }
 
-            // 支持逗号或换行分割选项
             const options = optionsStr.split(/[,，\n]/).map(o => o.trim()).filter(o => o);
             
             if (options.length < 2) {
@@ -334,29 +327,74 @@
                 return;
             }
 
-            appData.questions.push({
-                id: Date.now(), // 用时间戳做唯一标识
-                title: title,
-                type: type,
-                options: options
-            });
+            if (editingQuestionId) {
+                // 编辑现有题目
+                const index = appData.questions.findIndex(q => q.id === editingQuestionId);
+                if (index !== -1) {
+                    appData.questions[index].title = title;
+                    appData.questions[index].type = type;
+                    appData.questions[index].options = options;
+                }
+                alert("修改已保存！");
+                cancelEdit(); // 恢复输入框状态
+            } else {
+                // 添加新题目
+                appData.questions.push({
+                    id: Date.now(),
+                    title: title,
+                    type: type,
+                    options: options
+                });
+                document.getElementById('qTitle').value = '';
+                document.getElementById('qOptions').value = '';
+            }
 
             saveToLocal();
             renderQuestionList();
             renderVotingInterface();
-            
-            // 清空输入框
-            document.getElementById('qTitle').value = '';
-            document.getElementById('qOptions').value = '';
         }
 
-        // 删除单独某道题
+        // 进入编辑模式
+        function editQuestion(qId) {
+            const q = appData.questions.find(item => item.id === qId);
+            if (!q) return;
+
+            // 填充数据到输入框
+            document.getElementById('qTitle').value = q.title;
+            document.getElementById('qType').value = q.type;
+            document.getElementById('qOptions').value = q.options.join('\n');
+
+            // 切换按钮状态
+            editingQuestionId = qId;
+            const btn = document.getElementById('addQuestionBtn');
+            btn.innerText = "保存修改";
+            btn.style.backgroundColor = "#e67e22"; // 变橙色以示区分
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+        }
+
+        // 取消编辑模式
+        function cancelEdit() {
+            editingQuestionId = null;
+            document.getElementById('qTitle').value = '';
+            document.getElementById('qType').value = 'radio';
+            document.getElementById('qOptions').value = '';
+            
+            const btn = document.getElementById('addQuestionBtn');
+            btn.innerText = "添加该题目";
+            btn.style.backgroundColor = ""; // 恢复默认颜色
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+
         function deleteSingleQuestion(qId) {
             if (confirm("确定要删除这道题目吗？该题已产生的投票数据在统计时将被忽略。")) {
                 appData.questions = appData.questions.filter(q => q.id !== qId);
                 saveToLocal();
                 renderQuestionList();
                 renderVotingInterface();
+                // 如果删除的正好是正在编辑的题目，退出编辑模式
+                if (editingQuestionId === qId) {
+                    cancelEdit();
+                }
             }
         }
 
@@ -366,6 +404,7 @@
                 saveToLocal();
                 renderQuestionList();
                 renderVotingInterface();
+                cancelEdit();
             }
         }
 
@@ -374,17 +413,19 @@
             const containerObj = document.getElementById('questionListContainer');
             
             infoObj.innerText = `当前共 ${appData.questions.length} 题`;
-            containerObj.innerHTML = ''; // 清空重新渲染
+            containerObj.innerHTML = ''; 
 
             appData.questions.forEach((q, index) => {
-                // 动态创建每道题目的展示与删除按钮
                 const qTypeStr = q.type === 'radio' ? '单选' : '多选';
                 let html = `
                 <div class="question-list-item">
                     <div style="flex:1; padding-right:10px; word-break: break-all;">
                         <strong>${index + 1}.</strong> ${q.title} <span style="color:#95a5a6; font-size:12px;">(${qTypeStr})</span>
                     </div>
-                    <button class="danger small-btn" onclick="deleteSingleQuestion(${q.id})">删除</button>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="secondary small-btn" onclick="editQuestion(${q.id})" style="background-color: #f39c12;">编辑</button>
+                        <button class="danger small-btn" onclick="deleteSingleQuestion(${q.id})">删除</button>
+                    </div>
                 </div>`;
                 containerObj.innerHTML += html;
             });
@@ -476,7 +517,6 @@
                 return;
             }
 
-            // 1. 验证身份是否在名单中
             if (appData.students.length > 0) {
                 const isValid = appData.students.some(s => s.id === idInput && s.name === nameInput);
                 if (!isValid) {
@@ -487,7 +527,6 @@
                 if(!confirm("系统当前未录入班级 Excel 名单，将直接记录您的学号和姓名，是否继续？")) return;
             }
 
-            // 2. 检查是否已经投过票
             const hasVoted = appData.votes.some(v => v.studentId === idInput);
             if (hasVoted) {
                 alert(`学号 ${idInput} 已经完成过投票，无法重复提交！`);
@@ -495,7 +534,6 @@
                 return;
             }
 
-            // 3. 收集答案
             let currentAnswers = {};
             let isAllAnswered = true;
 
@@ -516,7 +554,6 @@
                 return;
             }
 
-            // 4. 保存投票记录
             appData.votes.push({
                 studentId: idInput,
                 studentName: nameInput,
@@ -526,7 +563,6 @@
 
             saveToLocal();
             
-            // 5. 成功提示并重置给下一个人
             alert("提交成功！请将设备传递给下一位同学。");
             resetVotingForm();
         }
