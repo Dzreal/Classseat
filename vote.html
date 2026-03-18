@@ -53,8 +53,18 @@
             width: 100%;
             text-align: left;
             transition: background-color 0.3s ease;
+            outline: none; /* 移除选中时的外边框 */
+            -webkit-tap-highlight-color: transparent; /* 移除手机端点击时的默认高亮黑影 */
         }
-        .menu-toggle:hover { background-color: rgba(0, 0, 0, 0.05); }
+        
+        /* 仅在支持真正鼠标悬停的设备上启用 hover 阴影，彻底解决手机端阴影残留问题 */
+        @media (hover: hover) {
+            .menu-toggle:hover { background-color: rgba(0, 0, 0, 0.05); }
+        }
+        
+        /* 手机端和电脑端点击按下瞬间的浅色反馈，松手即消失 */
+        .menu-toggle:active { background-color: rgba(0, 0, 0, 0.08); }
+
         .menu-icon { font-size: 22px; line-height: 1; min-width: 24px; text-align: center; }
         
         /* 菜单文字：闭合时隐藏，展开时浮现 */
@@ -134,7 +144,7 @@
 
     <div class="left-panel" id="leftPanel">
         <div class="left-header">
-            <button class="menu-toggle" onclick="toggleSidebar()">
+            <button class="menu-toggle" onclick="toggleSidebar(this)">
                 <span class="menu-icon">☰</span>
                 <span class="menu-text">配置面板</span>
             </button>
@@ -396,8 +406,15 @@
             renderStudentDropdown();
         };
 
-        function toggleSidebar() { 
+        // 修复点：接收 btn 参数，强制消除焦点
+        function toggleSidebar(btn) { 
             document.body.classList.toggle('sidebar-open'); 
+            
+            // 点击后主动释放焦点，防止手机端伪悬停状态残留
+            if (btn) {
+                btn.blur();
+            }
+
             if (document.body.classList.contains('sidebar-open') && !document.getElementById('loginView').classList.contains('hidden')) {
                 checkAndRenderBigScreenLogin();
             }
