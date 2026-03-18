@@ -90,6 +90,7 @@
                 <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
                 <input type="password" id="adminPwd" placeholder="请输入管理员密码" autocomplete="off">
                 <button class="action-btn" onclick="verifyPassword()">解锁配置区</button>
+                <p style="font-size: 12px; color: #95a5a6; text-align: center;">提示密码：0329</p>
             </div>
 
             <div id="configView" class="hidden">
@@ -99,13 +100,10 @@
                 </div>
                 
                 <div class="config-section">
-                    <h3>0. GitHub API 配置 (自动保存本地)</h3>
+                    <h3>0. GitHub API 配置</h3>
+                    <p style="font-size: 12px; color: #bdc3c7; margin-top: 0; margin-bottom: 8px;">目标库已硬编码指向：Dzreal/Class-Data</p>
                     <input type="password" id="ghToken" placeholder="输入 GitHub Token (ghp_xxx...)">
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="ghOwner" placeholder="用户名 (如: Dzreal)">
-                        <input type="text" id="ghRepo" placeholder="库名 (如: classdata)">
-                    </div>
-                    <button class="action-btn secondary small-btn" onclick="saveGhConfig()">更新保存此配置</button>
+                    <button class="action-btn secondary small-btn" onclick="saveGhConfig()">更新保存 Token</button>
                 </div>
 
                 <div class="config-section">
@@ -205,7 +203,7 @@
     <script>
         // 核心数据
         let appData = { students: [], questions: [], votes: [] };
-        const ADMIN_PWD = "123"; 
+        const ADMIN_PWD = "0329"; // 密码已更新
         let editingQuestionId = null; 
 
         // ------------------ GitHub API 交互封装 ------------------
@@ -213,8 +211,8 @@
             get config() {
                 return {
                     token: document.getElementById('ghToken').value.trim(),
-                    owner: document.getElementById('ghOwner').value.trim(),
-                    repo: document.getElementById('ghRepo').value.trim()
+                    owner: 'Dzreal', // 库拥有者硬编码
+                    repo: 'Class-Data' // 目标库硬编码
                 };
             },
             get headers() {
@@ -225,8 +223,8 @@
                 };
             },
             checkConfig() {
-                if (!this.config.token || !this.config.owner || !this.config.repo) {
-                    alert('请先在第 0 区配置完整的 GitHub Token、用户名和仓库名！');
+                if (!this.config.token) {
+                    alert('请先在第 0 区输入并保存 GitHub Token！');
                     return false;
                 }
                 return true;
@@ -328,14 +326,10 @@
         // --- GitHub 账号配置存取 ---
         function initGhConfig() {
             document.getElementById('ghToken').value = localStorage.getItem('ghToken') || '';
-            document.getElementById('ghOwner').value = localStorage.getItem('ghOwner') || 'Dzreal';
-            document.getElementById('ghRepo').value = localStorage.getItem('ghRepo') || 'classdata';
         }
         function saveGhConfig() {
             localStorage.setItem('ghToken', document.getElementById('ghToken').value.trim());
-            localStorage.setItem('ghOwner', document.getElementById('ghOwner').value.trim());
-            localStorage.setItem('ghRepo', document.getElementById('ghRepo').value.trim());
-            alert("✅ GitHub API 设定已保存于浏览器缓存中！");
+            alert("✅ GitHub Token 已保存于浏览器缓存中！");
         }
 
         // --- 名单管理 (Excel -> GitHub / GitHub -> Local) ---
@@ -519,7 +513,7 @@
             const fileName = document.getElementById('cloudRecordList').value;
             if(!fileName) { alert('请先选择要读取的记录'); return; }
             const data = await GitHub.getFile(`records/${fileName}`);
-            if(data && data.questions) { // 兼容校验
+            if(data && data.questions) { 
                 appData = data;
                 saveToLocal(); updateClassStatus(); renderQuestionList(); renderVotingInterface();
                 alert(`✅ 成功从云端恢复投票记录: ${fileName.replace('.json', '')}`);
