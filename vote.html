@@ -67,13 +67,14 @@
             max-width: 85vw; /* 适配较窄的屏幕 */
         }
 
-        /* 内部内容区：用于实现淡入淡出，防止动画收缩时文字挤压换行 */
+        /* 内部内容滚动区：独立于顶部的安全区 */
         .left-panel-content {
             width: 400px; /* 保持固定宽度，由父级面板遮挡 */
             max-width: 85vw;
-            height: 100vh;
-            padding: 70px 20px 20px 20px; /* 顶部留出 70px 空间，防止和菜单按钮重叠 */
-            overflow-y: auto;
+            height: calc(100vh - 70px); /* 关键修复：总高度减去顶部的70px，限制滚动区域 */
+            margin-top: 70px; /* 关键修复：把滚动区域向下推，留出顶部纯色安全区给按钮 */
+            padding: 0px 20px 30px 20px; 
+            overflow-y: auto; /* 只有这个区域可以滚动 */
             opacity: 0;
             transition: opacity 0.2s ease;
         }
