@@ -62,7 +62,7 @@
 
         .vote-header { text-align: center; margin-bottom: 30px; }
         .student-auth { display: flex; gap: 20px; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
-        .student-auth input { flex: 1; margin: 0; font-size: 18px; padding: 15px; }
+        .student-auth select { flex: 1; margin: 0; font-size: 18px; padding: 15px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
         .question-card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .question-card h4 { margin-top: 0; font-size: 1.2em; color: #333; }
         .option-label { display: block; margin: 10px 0; padding: 15px; background: #f1f3f5; border-radius: 6px; cursor: pointer; font-size: 18px; border: 2px solid transparent; transition: all 0.2s; }
@@ -182,8 +182,9 @@
         </div>
 
         <div class="student-auth">
-            <input type="text" id="studentId" placeholder="请输入您的学号 (如: 01)" autocomplete="off">
-            <input type="text" id="studentName" placeholder="请输入您的姓名 (如: 张三)" autocomplete="off">
+            <select id="studentSelect">
+                <option value="">请等待读取名单...</option>
+            </select>
         </div>
 
         <div id="votingArea">
@@ -302,12 +303,33 @@
             }
         };
 
+        // --- 渲染学生下拉框核心逻辑 ---
+        function renderStudentDropdown() {
+            const select = document.getElementById('studentSelect');
+            if (!select) return;
+            
+            if (!appData.students || appData.students.length === 0) {
+                select.innerHTML = '<option value="">请等待老师配置班级名单...</option>';
+                return;
+            }
+
+            const votedIds = appData.votes.map(v => String(v.studentId));
+            const unvotedStudents = appData.students.filter(s => !votedIds.includes(String(s.id)));
+
+            select.innerHTML = `<option value="">还剩 ${unvotedStudents.length} 人未投票 (请下拉选择)</option>`;
+
+            unvotedStudents.forEach(s => {
+                select.innerHTML += `<option value="${s.id}|${s.name}">${s.id} - ${s.name}</option>`;
+            });
+        }
+
         window.onload = function() {
             initGhConfig();
             loadFromLocal();
             renderQuestionList();
             renderVotingInterface();
             updateClassStatus();
+            renderStudentDropdown();
         };
 
         function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
@@ -367,6 +389,7 @@
                             alert(`✅ 成功读取 Excel 并已将其写入 GitHub: classeslists/${name}.json`);
                             appData.students = newStudents;
                             saveToLocal(); updateClassStatus(); refreshCloudClasses();
+                            renderStudentDropdown();
                             document.getElementById('newClassName').value = '';
                         }
                     } else { alert("未能读取到有效名单内容。"); }
@@ -397,6 +420,7 @@
             if(data) {
                 appData.students = data;
                 saveToLocal(); updateClassStatus();
+                renderStudentDropdown();
                 document.getElementById('cloudLoadStatus').innerText = `已读取到“${fileName.replace('.json', '')}”共${data.length}人`;
                 alert(`✅ 成功从云端读取名单: ${fileName.replace('.json', '')}`);
             }
@@ -518,6 +542,7 @@
             if(data && data.questions) { 
                 appData = data;
                 saveToLocal(); updateClassStatus(); renderQuestionList(); renderVotingInterface();
+                renderStudentDropdown();
                 alert(`✅ 成功从云端恢复投票记录: ${fileName.replace('.json', '')}`);
             }
         }
@@ -534,7 +559,9 @@
         function clearLocalVotes() {
             if (confirm("确定要清空目前工作区的投票结果吗？（只要不覆盖保存，云端的备份不受影响）")) {
                 appData.votes = [];
-                saveToLocal(); alert("本地投票已清空，可开启下一轮投票。");
+                saveToLocal(); 
+                renderStudentDropdown();
+                alert("本地投票已清空，可开启下一轮投票。");
             }
         }
 
@@ -562,18 +589,25 @@
         }
 
         function submitVote() {
-            const idInput = document.getElementById('studentId').value.trim();
-            const nameInput = document.getElementById('studentName').value.trim();
-            if (!idInput || !nameInput) { alert("请输入学号和姓名！"); return; }
+            const studentSelect = document.getElementById('studentSelect');
+            const selectedValue = studentSelect ? studentSelect.value : '';
+            
+            if (!appData.students || appData.students.length === 0) {
+                alert("请老师先在配置面板读取班级名单！"); 
+                return;
+            }
+            
+            if (!selectedValue) { 
+                alert("请选择您的学号和姓名！"); 
+                return; 
+            }
 
-            if (appData.students.length > 0) {
-                if (!appData.students.some(s => s.id === idInput && s.name === nameInput)) {
-                    alert("身份验证失败，请检查学号或姓名是否输入正确！"); return;
-                }
-            } else if(!confirm("当前未读取名单校验，是否作为自由记录提交？")) return;
+            const [idInput, nameInput] = selectedValue.split('|');
 
-            if (appData.votes.some(v => v.studentId === idInput)) {
-                alert(`学号 ${idInput} 已经完成过投票！`); resetVotingForm(); return;
+            if (appData.votes.some(v => String(v.studentId) === String(idInput))) {
+                alert(`学号 ${idInput} 已经完成过投票！`); 
+                resetVotingForm(); 
+                return;
             }
 
             let currentAnswers = {};
@@ -591,9 +625,10 @@
         }
 
         function resetVotingForm() {
-            document.getElementById('studentId').value = ''; document.getElementById('studentName').value = '';
             document.querySelectorAll('#votingArea input').forEach(input => input.checked = false);
             document.getElementById('rightPanel').scrollTop = 0;
+            // 提交完成后重新渲染下拉框（自动隐藏已投的人，并重置选中状态）
+            renderStudentDropdown(); 
         }
 
         // --- 可视化 ---
