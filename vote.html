@@ -90,7 +90,7 @@
                 <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
                 <input type="password" id="adminPwd" placeholder="请输入管理员密码" autocomplete="off">
                 <button class="action-btn" onclick="verifyPassword()">解锁配置区</button>
-                <p style="font-size: 12px; color: #95a5a6; text-align: center;">提示密码：0329</p>
+                <p style="font-size: 12px; color: #95a5a6; text-align: center;">密码提示：【那个数字】</p>
             </div>
 
             <div id="configView" class="hidden">
@@ -101,7 +101,7 @@
                 
                 <div class="config-section">
                     <h3>0. GitHub API 配置</h3>
-                    <p style="font-size: 12px; color: #bdc3c7; margin-top: 0; margin-bottom: 8px;">目标库已硬编码指向：Dzreal/Class-Data</p>
+                    <p style="font-size: 12px; color: #bdc3c7; margin-top: 0; margin-bottom: 8px;">目标库已硬编码指向私有库</p>
                     <input type="password" id="ghToken" placeholder="输入 GitHub Token (ghp_xxx...)">
                     <button class="action-btn secondary small-btn" onclick="saveGhConfig()">更新保存 Token</button>
                 </div>
@@ -114,6 +114,7 @@
                         <button class="action-btn secondary small-btn" style="width: auto;" onclick="refreshCloudClasses()">🔄 获取</button>
                     </div>
                     <button class="action-btn" onclick="loadCloudClass()">读取并应用该名单</button>
+                    <p id="cloudLoadStatus" style="font-size: 13px; color: #1abc9c; margin-top: 5px; margin-bottom: 0; font-weight: bold;"></p>
                     
                     <hr style="border:0; border-top:1px dashed #455a64; margin:15px 0;">
                     
@@ -203,7 +204,7 @@
     <script>
         // 核心数据
         let appData = { students: [], questions: [], votes: [] };
-        const ADMIN_PWD = "0329"; // 密码已更新
+        const ADMIN_PWD = "0329"; 
         let editingQuestionId = null; 
 
         // ------------------ GitHub API 交互封装 ------------------
@@ -211,8 +212,8 @@
             get config() {
                 return {
                     token: document.getElementById('ghToken').value.trim(),
-                    owner: 'Dzreal', // 库拥有者硬编码
-                    repo: 'Class-Data' // 目标库硬编码
+                    owner: 'Dzreal', 
+                    repo: 'Class-Data' 
                 };
             },
             get headers() {
@@ -361,9 +362,9 @@
                     }
 
                     if (newStudents.length > 0) {
-                        const success = await GitHub.saveFile(`lists/${name}.json`, newStudents, `Add class list ${name}`);
+                        const success = await GitHub.saveFile(`classeslists/${name}.json`, newStudents, `Add class list ${name}`);
                         if(success) {
-                            alert(`✅ 成功读取 Excel 并已将其写入 GitHub: lists/${name}.json`);
+                            alert(`✅ 成功读取 Excel 并已将其写入 GitHub: classeslists/${name}.json`);
                             appData.students = newStudents;
                             saveToLocal(); updateClassStatus(); refreshCloudClasses();
                             document.getElementById('newClassName').value = '';
@@ -378,7 +379,7 @@
         async function refreshCloudClasses() {
             const select = document.getElementById('cloudClassList');
             select.innerHTML = '<option value="">获取中...</option>';
-            const files = await GitHub.listFiles('lists');
+            const files = await GitHub.listFiles('classeslists');
             select.innerHTML = '<option value="">请选择班级...</option>';
             files.forEach(f => {
                 if(f.endsWith('.json')) {
@@ -392,10 +393,11 @@
         async function loadCloudClass() {
             const fileName = document.getElementById('cloudClassList').value;
             if(!fileName) { alert('请先在下拉框选择名单'); return; }
-            const data = await GitHub.getFile(`lists/${fileName}`);
+            const data = await GitHub.getFile(`classeslists/${fileName}`);
             if(data) {
                 appData.students = data;
                 saveToLocal(); updateClassStatus();
+                document.getElementById('cloudLoadStatus').innerText = `已读取到“${fileName.replace('.json', '')}”共${data.length}人`;
                 alert(`✅ 成功从云端读取名单: ${fileName.replace('.json', '')}`);
             }
         }
@@ -487,7 +489,7 @@
             const name = document.getElementById('recordName').value.trim();
             if (!name) { alert('请填写要保存的记录名称！'); return; }
             
-            const success = await GitHub.saveFile(`records/${name}.json`, appData, `Save vote record ${name}`);
+            const success = await GitHub.saveFile(`voterecords/${name}.json`, appData, `Save vote record ${name}`);
             if(success) {
                 alert('✅ 工作区数据已完整备份到 GitHub！');
                 document.getElementById('recordName').value = '';
@@ -498,7 +500,7 @@
         async function refreshCloudRecords() {
             const select = document.getElementById('cloudRecordList');
             select.innerHTML = '<option value="">获取中...</option>';
-            const files = await GitHub.listFiles('records');
+            const files = await GitHub.listFiles('voterecords');
             select.innerHTML = '<option value="">请选择云端记录...</option>';
             files.forEach(f => {
                 if(f.endsWith('.json')) {
@@ -512,7 +514,7 @@
         async function loadCloudRecord() {
             const fileName = document.getElementById('cloudRecordList').value;
             if(!fileName) { alert('请先选择要读取的记录'); return; }
-            const data = await GitHub.getFile(`records/${fileName}`);
+            const data = await GitHub.getFile(`voterecords/${fileName}`);
             if(data && data.questions) { 
                 appData = data;
                 saveToLocal(); updateClassStatus(); renderQuestionList(); renderVotingInterface();
@@ -524,7 +526,7 @@
             const fileName = document.getElementById('cloudRecordList').value;
             if(!fileName) { alert('请先选择要删除的记录'); return; }
             if(confirm(`🚨 危险！确定要永久删除云端记录 [${fileName.replace('.json', '')}] 吗？`)) {
-                const success = await GitHub.deleteFile(`records/${fileName}`, `Delete vote record ${fileName}`);
+                const success = await GitHub.deleteFile(`voterecords/${fileName}`, `Delete vote record ${fileName}`);
                 if(success) { alert('已彻底删除！'); refreshCloudRecords(); }
             }
         }
