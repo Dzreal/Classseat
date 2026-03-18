@@ -9,16 +9,14 @@
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; padding: 0; display: flex; height: 100vh; width: 100vw; background-color: #f4f7f6; overflow: hidden; }
         
-        /* 自定义滚动条更美观 - 适配浅色主题 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #c4c7c5; border-radius: 4px; }
         
-        /* --- 新版 Gemini 风格：明亮浅色系侧边栏 --- */
         .left-panel { 
-            width: 64px; /* 闭合状态：保留细条 */
-            background-color: #f0f4f9; /* Gemini 侧边栏标志性浅色背景 */
-            color: #1f1f1f; /* 深灰色主文本 */
+            width: 64px; 
+            background-color: #f0f4f9; 
+            color: #1f1f1f; 
             overflow: hidden; 
             flex-shrink: 0;
             display: flex;
@@ -29,92 +27,48 @@
         }
         body.sidebar-open .left-panel { width: 420px; max-width: 85vw; }
 
-        /* 左侧面板的头部：包含菜单按钮 */
-        .left-header {
-            height: 70px;
-            display: flex;
-            align-items: center;
-            padding: 0 10px; 
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
+        .left-header { height: 70px; display: flex; align-items: center; padding: 0 10px; flex-shrink: 0; white-space: nowrap; }
 
-        /* 菜单按钮本身 */
         .menu-toggle {
-            background: transparent; 
-            color: #444746; /* Gemini 汉堡菜单图标颜色 */
-            border: none; 
-            padding: 10px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            width: 100%;
-            text-align: left;
-            transition: background-color 0.3s ease;
-            outline: none; /* 移除选中时的外边框 */
-            -webkit-tap-highlight-color: transparent; /* 移除手机端点击时的默认高亮黑影 */
+            background: transparent; color: #444746; border: none; padding: 10px; border-radius: 6px; 
+            cursor: pointer; display: flex; align-items: center; gap: 15px; width: 100%; text-align: left;
+            transition: background-color 0.3s ease; outline: none; -webkit-tap-highlight-color: transparent; 
         }
         
-        /* 仅在支持真正鼠标悬停的设备上启用 hover 阴影，彻底解决手机端阴影残留问题 */
-        @media (hover: hover) {
-            .menu-toggle:hover { background-color: rgba(0, 0, 0, 0.05); }
-        }
-        
-        /* 手机端和电脑端点击按下瞬间的浅色反馈，松手即消失 */
+        @media (hover: hover) { .menu-toggle:hover { background-color: rgba(0, 0, 0, 0.05); } }
         .menu-toggle:active { background-color: rgba(0, 0, 0, 0.08); }
 
         .menu-icon { font-size: 22px; line-height: 1; min-width: 24px; text-align: center; }
-        
-        /* 菜单文字：闭合时隐藏，展开时浮现 */
         .menu-text { font-size: 18px; font-weight: bold; opacity: 0; transition: opacity 0.2s ease; }
         body.sidebar-open .menu-text { opacity: 1; transition: opacity 0.3s ease 0.1s; }
 
-        /* 配置区内容主体 */
         .left-panel-content {
-            flex: 1;
-            width: 420px; 
-            max-width: 85vw; 
-            padding: 0 20px 30px 20px; 
-            overflow-y: auto; 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: opacity 0.2s ease, visibility 0.2s;
+            flex: 1; width: 420px; max-width: 85vw; padding: 0 20px 30px 20px; 
+            overflow-y: auto; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s;
         }
-        body.sidebar-open .left-panel-content { 
-            opacity: 1; 
-            visibility: visible;
-            transition: opacity 0.3s ease 0.1s, visibility 0s; 
-        }
+        body.sidebar-open .left-panel-content { opacity: 1; visibility: visible; transition: opacity 0.3s ease 0.1s, visibility 0s; }
 
-        /* --- 右侧投票区 --- */
         .right-panel { 
-            flex-grow: 1; 
-            height: 100vh; 
-            padding: 40px 40px 40px 40px; 
-            overflow-y: auto; 
-            background-color: #ffffff; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            position: relative;
+            flex-grow: 1; height: 100vh; padding: 40px 40px 40px 40px; 
+            overflow-y: auto; background-color: #ffffff; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
         }
 
-        /* --- 浅色控件样式 --- */
         .config-section { background: #ffffff; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .config-section h3 { margin-top: 0; color: #1f1f1f; font-size: 1.1em; border-bottom: 1px solid #e0e4e9; padding-bottom: 10px; }
-        input[type="text"], input[type="password"], textarea, select { width: 100%; padding: 10px; margin: 8px 0; border-radius: 8px; border: 1px solid #c4c7c5; background: #ffffff; color: #1f1f1f; font-size: 14px; }
+        
+        /* 新增 input[type="number"] 样式支持 */
+        input[type="text"], input[type="password"], input[type="number"], textarea, select { 
+            width: 100%; padding: 10px; margin: 8px 0; border-radius: 8px; border: 1px solid #c4c7c5; 
+            background: #ffffff; color: #1f1f1f; font-size: 14px; 
+        }
         textarea { resize: vertical; min-height: 80px; }
         
-        /* 按钮：完全复刻 Gemini 的 Material 3 药丸风格 */
         button.action-btn { background-color: #c2e7ff; color: #001d35; border: none; padding: 12px; margin: 5px 0; border-radius: 24px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; transition: background 0.3s; }
         button.action-btn:hover { background-color: #b1d6ee; }
-        
         button.action-btn.secondary { background-color: #e1e3e1; color: #1f1f1f; }
         button.action-btn.secondary:hover { background-color: #d3d5d3; }
-        
         button.action-btn.danger { background-color: #f2b8b5; color: #601410; }
         button.action-btn.danger:hover { background-color: #e4aba8; }
-        
         button.action-btn.small-btn { padding: 6px 12px; font-size: 13px; width: auto; margin: 0; }
         
         .hidden { display: none !important; }
@@ -130,7 +84,6 @@
         .option-label input { margin-right: 15px; transform: scale(1.5); }
         input[type="radio"]:checked + span, input[type="checkbox"]:checked + span { font-weight: bold; color: #0b57d0; }
         
-        /* 右侧的提交按钮保持亮色醒目 */
         .submit-vote-btn { background-color: #0b57d0; color: white; font-size: 20px; padding: 15px; margin-top: 20px; border-radius: 24px; }
         .submit-vote-btn:hover { background-color: #0842a0; }
 
@@ -203,10 +156,15 @@
                 <div class="config-section">
                     <h3>2. 题目设置</h3>
                     <input type="text" id="qTitle" placeholder="请输入题目内容">
-                    <select id="qType">
+                    
+                    <select id="qType" onchange="toggleLimitInput()">
                         <option value="radio">单选题</option>
-                        <option value="checkbox">多选题</option>
+                        <option value="checkbox_any">多选题 (任意项无限制)</option>
+                        <option value="checkbox_max">限选题 (最多选 N 项)</option>
+                        <option value="checkbox_exact">限选题 (必须选 N 项)</option>
                     </select>
+                    <input type="number" id="qLimit" placeholder="请输入限制项数 N (如: 2)" class="hidden" min="1" style="margin-top: 0;">
+                    
                     <textarea id="qOptions" placeholder="选项：用逗号或回车分隔"></textarea>
                     
                     <div style="display: flex; gap: 10px;">
@@ -406,15 +364,9 @@
             renderStudentDropdown();
         };
 
-        // 修复点：接收 btn 参数，强制消除焦点
         function toggleSidebar(btn) { 
             document.body.classList.toggle('sidebar-open'); 
-            
-            // 点击后主动释放焦点，防止手机端伪悬停状态残留
-            if (btn) {
-                btn.blur();
-            }
-
+            if (btn) btn.blur();
             if (document.body.classList.contains('sidebar-open') && !document.getElementById('loginView').classList.contains('hidden')) {
                 checkAndRenderBigScreenLogin();
             }
@@ -669,20 +621,44 @@
             }
         }
 
-        // --- 题目管理 ---
+        // --- 题目管理 (新增限选逻辑) ---
+        function toggleLimitInput() {
+            const type = document.getElementById('qType').value;
+            const limitInput = document.getElementById('qLimit');
+            if (type === 'checkbox_max' || type === 'checkbox_exact') {
+                limitInput.classList.remove('hidden');
+            } else {
+                limitInput.classList.add('hidden');
+                limitInput.value = '';
+            }
+        }
+
         function addQuestion() {
             const title = document.getElementById('qTitle').value.trim();
             const type = document.getElementById('qType').value;
             const opts = document.getElementById('qOptions').value.trim().split(/[,，\n]/).map(o => o.trim()).filter(o => o);
+            let limit = parseInt(document.getElementById('qLimit').value);
+
             if (!title || opts.length < 2) { alert("题目不能为空，且至少两项选项！"); return; }
+            
+            // 校验限选数字
+            if (type === 'checkbox_max' || type === 'checkbox_exact') {
+                if (isNaN(limit) || limit < 1 || limit >= opts.length) {
+                    alert(`请正确输入限制项数 N（必须大于0，且小于选项总数 ${opts.length}）！`);
+                    return;
+                }
+            } else {
+                limit = null; // 非限选题清空限制数字
+            }
 
             if (editingQuestionId) {
                 const q = appData.questions.find(q => q.id === editingQuestionId);
-                if (q) { q.title = title; q.type = type; q.options = opts; }
+                if (q) { q.title = title; q.type = type; q.options = opts; q.limit = limit; }
                 cancelEdit(); 
             } else {
-                appData.questions.push({ id: Date.now(), title, type, options: opts });
+                appData.questions.push({ id: Date.now(), title, type, limit, options: opts });
                 document.getElementById('qTitle').value = ''; document.getElementById('qOptions').value = '';
+                document.getElementById('qLimit').value = '';
             }
             saveToLocal(); renderQuestionList(); renderVotingInterface();
         }
@@ -691,8 +667,13 @@
             const q = appData.questions.find(item => item.id === qId);
             if (!q) return;
             document.getElementById('qTitle').value = q.title;
-            document.getElementById('qType').value = q.type;
+            // 兼容旧数据的 checkbox 类型
+            document.getElementById('qType').value = q.type === 'checkbox' ? 'checkbox_any' : q.type;
+            document.getElementById('qLimit').value = q.limit || '';
             document.getElementById('qOptions').value = q.options.join('\n');
+            
+            toggleLimitInput(); // 动态显示/隐藏限制输入框
+            
             editingQuestionId = qId;
             document.getElementById('addQuestionBtn').innerText = "保存修改";
             document.getElementById('cancelEditBtn').classList.remove('hidden');
@@ -700,7 +681,13 @@
 
         function cancelEdit() {
             editingQuestionId = null;
-            document.getElementById('qTitle').value = ''; document.getElementById('qType').value = 'radio'; document.getElementById('qOptions').value = '';
+            document.getElementById('qTitle').value = ''; 
+            document.getElementById('qType').value = 'radio'; 
+            document.getElementById('qLimit').value = '';
+            document.getElementById('qOptions').value = '';
+            
+            toggleLimitInput(); // 恢复默认隐藏状态
+            
             document.getElementById('addQuestionBtn').innerText = "添加题目";
             document.getElementById('cancelEditBtn').classList.add('hidden');
         }
@@ -725,10 +712,15 @@
             const container = document.getElementById('questionListContainer');
             container.innerHTML = ''; 
             appData.questions.forEach((q, index) => {
+                // 兼容旧的 checkbox，解析正确的类型提示文本
+                let typeText = q.type === 'radio' ? '单选' : 
+                              (q.type === 'checkbox_max' ? `最多${q.limit}项` : 
+                              (q.type === 'checkbox_exact' ? `必选${q.limit}项` : '多选'));
+
                 container.innerHTML += `
                 <div class="question-list-item">
                     <div style="flex:1; padding-right:10px; word-break: break-all;">
-                        <strong>${index + 1}.</strong> ${q.title} <span style="color:#444746; font-size:12px;">(${q.type === 'radio' ? '单选' : '多选'})</span>
+                        <strong>${index + 1}.</strong> ${q.title} <span style="color:#444746; font-size:12px;">(${typeText})</span>
                     </div>
                     <div style="display: flex; gap: 5px;">
                         <button class="action-btn secondary small-btn" onclick="editQuestion(${q.id})">编辑</button>
@@ -796,6 +788,17 @@
         }
 
         // --- 右侧投票端 ---
+        
+        // 实时勾选数量拦截
+        function checkLimitOnSelect(checkbox, qId, type, limit) {
+            if (type !== 'checkbox_max' && type !== 'checkbox_exact') return;
+            const checkedCount = document.querySelectorAll(`input[name="name_q_${qId}"]:checked`).length;
+            if (checkedCount > limit) {
+                checkbox.checked = false; // 瞬间取消勾选
+                alert(`本题限制最多只能选择 ${limit} 项！`);
+            }
+        }
+
         function renderVotingInterface() {
             const area = document.getElementById('votingArea');
             const btn = document.getElementById('submitBtn');
@@ -804,13 +807,21 @@
                 btn.classList.add('hidden'); return;
             }
             btn.classList.remove('hidden'); area.innerHTML = '';
+            
             appData.questions.forEach((q, index) => {
+                let typeHint = q.type === 'radio' ? '单选' : 
+                              (q.type === 'checkbox_max' ? `最多选${q.limit}项` : 
+                              (q.type === 'checkbox_exact' ? `必选${q.limit}项` : '多选'));
+                
+                let inputType = q.type === 'radio' ? 'radio' : 'checkbox';
+
                 let html = `<div class="question-card" id="qcard_${q.id}">
-                                <h4>${index + 1}. ${q.title} <span style="font-weight:normal; color:#444746; font-size:0.8em;">(${q.type === 'radio' ? '单选' : '多选'})</span></h4>`;
+                                <h4>${index + 1}. ${q.title} <span style="font-weight:normal; color:#444746; font-size:0.8em;">(${typeHint})</span></h4>`;
+                
                 q.options.forEach((opt, oIndex) => {
                     const inputId = `q_${q.id}_opt_${oIndex}`;
                     html += `<label class="option-label" for="${inputId}">
-                                <input type="${q.type}" id="${inputId}" name="name_q_${q.id}" value="${opt}">
+                                <input type="${inputType}" id="${inputId}" name="name_q_${q.id}" value="${opt}" onchange="checkLimitOnSelect(this, ${q.id}, '${q.type}', ${q.limit})">
                                 <span>${opt}</span>
                              </label>`;
                 });
@@ -844,7 +855,23 @@
             for (let i = 0; i < appData.questions.length; i++) {
                 const q = appData.questions[i];
                 const inputs = document.querySelectorAll(`input[name="name_q_${q.id}"]:checked`);
-                if (inputs.length === 0) { alert("请完成所有题目后再提交！"); return; }
+                
+                // 基础校验：至少选一项
+                if (inputs.length === 0) { 
+                    alert(`第 ${i + 1} 题请至少选择一项！`); 
+                    return; 
+                }
+
+                // 终极校验：拦截懂前端的调皮学生绕过限制
+                if (q.type === 'checkbox_max' && inputs.length > q.limit) {
+                    alert(`第 ${i + 1} 题最多只能选 ${q.limit} 项！您多选了。`);
+                    return;
+                }
+                if (q.type === 'checkbox_exact' && inputs.length !== q.limit) {
+                    alert(`第 ${i + 1} 题必须精确选择 ${q.limit} 项！您当前选了 ${inputs.length} 项。`);
+                    return;
+                }
+
                 currentAnswers[`q_${q.id}`] = Array.from(inputs).map(i => i.value);
             }
 
