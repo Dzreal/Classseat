@@ -88,23 +88,18 @@
         <div class="left-panel-content">
             <div id="loginView">
                 <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
-                <input type="password" id="ghTokenLogin" placeholder="GitHub Token (新设备首次需填)" autocomplete="off" style="margin-bottom: 10px;">
-                <input type="password" id="adminPwd" placeholder="请输入管理员密码 (解锁配置)" autocomplete="off">
+                <input type="password" id="ghTokenLogin" placeholder="GitHub Token (新设备首次需填)" autocomplete="off" style="margin-bottom: 10px;" onchange="syncTokenAndCheck()">
+                <input type="password" id="adminPwd" placeholder="请输入管理员密码" autocomplete="off">
                 <button class="action-btn" id="loginBtn" onclick="verifyPassword()">解锁配置区</button>
+                <p style="font-size: 12px; color: #95a5a6; text-align: center;">私有库云端实时验证，守护安全</p>
                 
-                <hr style="border:0; border-top:1px dashed #455a64; margin:20px 0;">
-                
-                <button class="action-btn secondary" onclick="togglePublicRecordArea()">📊 免密展示云端结果 (用于大屏)</button>
-                <div id="publicRecordArea" class="hidden" style="margin-top: 15px; background: rgba(0,0,0,0.15); padding: 15px; border-radius: 8px;">
-                    <p style="font-size: 12px; color: #bdc3c7; margin-top: 0; margin-bottom: 8px;">在此处读取结果不会覆盖当前的本地投票记录</p>
-                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                        <select id="publicRecordList" style="flex: 1; margin: 0;"><option value="">请选择云端记录...</option></select>
-                        <button class="action-btn secondary small-btn" style="width: auto;" onclick="refreshPublicRecords()">🔄 获取</button>
-                    </div>
-                    <button class="action-btn" id="publicVisualBtn" onclick="showPublicVisualization()" style="background-color: #f39c12;">可视化选中结果</button>
+                <div id="bigScreenArea" class="hidden" style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed #7f8c8d;">
+                    <h3 style="text-align: center; margin-top: 0; color: #f39c12; font-size: 16px;">📊 免密大屏展示</h3>
+                    <select id="publicRecordList" style="margin-bottom: 10px; background: #34495e; color: white; border: 1px solid #f39c12;">
+                        <option value="">加载记录中...</option>
+                    </select>
+                    <button class="action-btn" style="background-color: #e67e22;" onclick="showPublicVisualization()">在大屏可视化该记录</button>
                 </div>
-
-                <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">私有库云端实时验证，守护安全</p>
             </div>
 
             <div id="configView" class="hidden">
@@ -181,6 +176,7 @@
                     </div>
 
                     <button class="action-btn" onclick="showVisualization()" style="margin-top: 15px;">📊 可视化当前结果</button>
+                    <button class="action-btn" id="toggleBigScreenBtn" onclick="toggleBigScreen()" style="margin-top: 10px; background-color: #8e44ad;">🔄 正在同步大屏状态...</button>
                     <button class="action-btn danger" onclick="clearLocalVotes()" style="margin-top: 10px;">清空本地投票 (不影响云端)</button>
                 </div>
             </div>
@@ -209,7 +205,7 @@
     <div id="visualModal" class="modal hidden">
         <div class="modal-content">
             <span class="modal-close" onclick="closeVisualization()">&times;</span>
-            <h2 id="visualModalTitle">投票结果统计</h2>
+            <h2>投票结果统计</h2>
             <div id="visualContent"></div>
         </div>
     </div>
@@ -223,7 +219,8 @@
         const GitHub = {
             get config() {
                 return {
-                    token: localStorage.getItem('ghToken') || '',
+                    // 读取顺序：输入框 -> 缓存 -> 空
+                    token: document.getElementById('ghTokenLogin').value.trim() || localStorage.getItem('ghToken') || '',
                     owner: 'Dzreal', 
                     repo: 'Class-Data' 
                 };
@@ -272,27 +269,30 @@
                     return false;
                 }
             },
-            async getFile(path) {
-                if (!this.checkConfig()) return null;
+            async getFile(path, silent = false) {
+                if (!this.checkConfig(silent)) return null;
                 try {
                     const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers });
-                    if (!res.ok) throw new Error('文件不存在或权限不足');
+                    if (!res.ok) {
+                        if (res.status === 404) return null; // 找不到文件正常返回 null
+                        throw new Error('文件不存在或权限不足');
+                    }
                     const data = await res.json();
                     return JSON.parse(this.decode(data.content));
                 } catch (e) {
-                    console.error('读取 GitHub 失败: ' + e.message);
+                    if (!silent) console.error('读取 GitHub 失败: ' + e.message);
                     return null;
                 }
             },
             async listFiles(dir) {
-                if (!this.checkConfig()) return [];
+                if (!this.checkConfig(true)) return [];
                 try {
                     const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${dir}`, { headers: this.headers });
                     if (!res.ok) { if (res.status === 404) return []; throw new Error('获取列表失败'); }
                     const data = await res.json();
                     return data.filter(item => item.type === 'file').map(item => item.name);
                 } catch (e) {
-                    alert('获取云端列表失败: ' + e.message);
+                    console.error('获取云端列表失败: ' + e.message);
                     return [];
                 }
             },
@@ -342,18 +342,30 @@
             renderStudentDropdown();
         };
 
-        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
+        // 切换侧边栏，并且触发免密大屏检查
+        function toggleSidebar() { 
+            document.body.classList.toggle('sidebar-open'); 
+            // 如果侧边栏打开，并且处于登录状态，则检查大屏开关
+            if (document.body.classList.contains('sidebar-open') && !document.getElementById('loginView').classList.contains('hidden')) {
+                checkAndRenderBigScreenLogin();
+            }
+        }
         
-        // 同步登录框的 Token 到缓存
-        function syncToken() {
-            const tokenLogin = document.getElementById('ghTokenLogin').value.trim();
-            if (tokenLogin) {
-                localStorage.setItem('ghToken', tokenLogin);
+        // 当用户在新设备粘贴 Token 时，自动触发检查
+        function syncTokenAndCheck() {
+            const token = document.getElementById('ghTokenLogin').value.trim();
+            if (token) {
+                localStorage.setItem('ghToken', token);
+                checkAndRenderBigScreenLogin();
             }
         }
 
         async function verifyPassword() {
-            syncToken();
+            const tokenLogin = document.getElementById('ghTokenLogin').value.trim();
+            if (tokenLogin) {
+                localStorage.setItem('ghToken', tokenLogin);
+            }
+
             if (!GitHub.config.token) {
                 alert("首次使用或更换设备，请先在上方输入 GitHub Token！\n（有Token才能连接您的私有库验证密码）");
                 return;
@@ -380,7 +392,7 @@
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('configView').classList.remove('hidden');
                 document.getElementById('adminPwd').value = ''; 
-                document.getElementById('publicRecordArea').classList.add('hidden'); // 进去后收起免密区
+                initConfigBigScreenBtn(); // 进入配置区后初始化大屏按钮状态
             } else { 
                 alert("密码错误！"); 
             }
@@ -393,32 +405,69 @@
             document.body.classList.remove('sidebar-open');
         }
 
-        // --- GitHub 账号配置存取 ---
         function initGhConfig() {
             const token = localStorage.getItem('ghToken') || '';
             document.getElementById('ghTokenLogin').value = token;
         }
 
-        // --- 大屏免密展示逻辑 ---
-        function togglePublicRecordArea() {
-            syncToken();
-            if (!GitHub.config.token) {
-                alert("请先在上方输入 GitHub Token 以连接云端获取记录！");
-                return;
-            }
-            
-            const area = document.getElementById('publicRecordArea');
-            area.classList.toggle('hidden');
-            if (!area.classList.contains('hidden')) {
+        // --- 大屏展示免密逻辑模块 ---
+        async function checkAndRenderBigScreenLogin() {
+            if (!GitHub.config.token) return;
+            // 静默读取云端配置
+            const state = await GitHub.getFile('bigscreen_config.json', true);
+            const area = document.getElementById('bigScreenArea');
+            if (state && state.enabled) {
+                area.classList.remove('hidden');
                 refreshPublicRecords();
+            } else {
+                area.classList.add('hidden');
+            }
+        }
+
+        async function initConfigBigScreenBtn() {
+            const state = await GitHub.getFile('bigscreen_config.json', true);
+            updateBigScreenBtnUI(state && state.enabled);
+        }
+
+        async function toggleBigScreen() {
+            const btn = document.getElementById('toggleBigScreenBtn');
+            const isCurrentlyEnabled = btn.innerText.includes('关闭');
+            const newState = !isCurrentlyEnabled;
+            
+            btn.innerText = "正在云端切换..."; btn.disabled = true;
+            
+            const success = await GitHub.saveFile('bigscreen_config.json', { enabled: newState }, `Toggle big screen to ${newState}`);
+            
+            btn.disabled = false;
+            if (success) {
+                updateBigScreenBtnUI(newState);
+                alert(`✅ 免密大屏展示已${newState ? '开启' : '关闭'}！`);
+            } else {
+                alert("设置失败，请重试！");
+                updateBigScreenBtnUI(isCurrentlyEnabled); // 回滚 UI
+            }
+        }
+
+        function updateBigScreenBtnUI(isEnabled) {
+            const btn = document.getElementById('toggleBigScreenBtn');
+            if (isEnabled) {
+                btn.innerText = "🔴 关闭大屏展示状态";
+                btn.style.backgroundColor = "#e74c3c";
+            } else {
+                btn.innerText = "🟢 开启大屏展示状态";
+                btn.style.backgroundColor = "#8e44ad";
             }
         }
 
         async function refreshPublicRecords() {
             const select = document.getElementById('publicRecordList');
-            select.innerHTML = '<option value="">获取中...</option>';
+            select.innerHTML = '<option value="">获取记录中...</option>';
             const files = await GitHub.listFiles('voterecords');
-            select.innerHTML = '<option value="">请选择要展示的云端记录...</option>';
+            if (files.length === 0) {
+                select.innerHTML = '<option value="">云端暂无记录</option>';
+                return;
+            }
+            select.innerHTML = '<option value="">请选择要在大屏展示的记录...</option>';
             files.forEach(f => {
                 if(f.endsWith('.json')) {
                     const opt = document.createElement('option');
@@ -430,23 +479,26 @@
 
         async function showPublicVisualization() {
             const fileName = document.getElementById('publicRecordList').value;
-            if(!fileName) { alert('请先选择要展示的记录'); return; }
+            if(!fileName) { alert('请先选择要展示的记录！'); return; }
             
-            const btn = document.getElementById('publicVisualBtn');
-            btn.innerText = "读取中..."; btn.disabled = true;
+            const btn = document.querySelector('#bigScreenArea button');
+            const originalText = btn.innerText;
+            btn.innerText = "记录拉取中..."; btn.disabled = true;
 
             const data = await GitHub.getFile(`voterecords/${fileName}`);
             
-            btn.innerText = "可视化选中结果"; btn.disabled = false;
+            btn.innerText = originalText; btn.disabled = false;
 
             if(data && data.questions) { 
-                // 调用可视化，传入特定的 data，不污染本地的 appData
-                showVisualization(data, `结果统计: ${fileName.replace('.json', '')}`);
+                renderVisualizationData(data);
+                document.getElementById('visualModal').classList.remove('hidden');
+            } else {
+                alert('记录读取失败，可能文件损坏！');
             }
         }
 
 
-        // --- 名单管理 ---
+        // --- 名单管理 (Excel -> GitHub / GitHub -> Local) ---
         function triggerExcelUpload() {
             if (!document.getElementById('newClassName').value.trim()) { alert('请先输入拟保存的名单名称！'); return; }
             document.getElementById('excelUpload').click();
@@ -479,7 +531,7 @@
                         if(success) {
                             alert(`✅ 成功读取 Excel 并已将其写入 GitHub: classeslists/${name}.json`);
                             appData.students = newStudents;
-                            appData.votes = []; 
+                            appData.votes = []; // 导入新名单时，自动清空旧投票缓存
                             saveToLocal(); updateClassStatus(); refreshCloudClasses();
                             renderStudentDropdown();
                             document.getElementById('newClassName').value = '';
@@ -742,42 +794,31 @@
             renderStudentDropdown(); 
         }
 
-        // --- 可视化 ---
-        // 修改了此函数：接收外部传入的 data 进行渲染，默认使用本地 appData
-        function showVisualization(displayData = appData, customTitle = "投票结果统计") {
+        // --- 可视化 (统一抽离渲染逻辑) ---
+        function showVisualization() {
+            if (appData.questions.length === 0) { alert("当前没有题目数据。"); return; }
+            renderVisualizationData(appData);
+            document.getElementById('visualModal').classList.remove('hidden');
+        }
+
+        // 公共的数据解析与渲染函数
+        function renderVisualizationData(dataObj) {
             const content = document.getElementById('visualContent');
-            document.getElementById('visualModalTitle').innerText = customTitle;
+            let html = `<p>当前读取参与人数：<strong>${dataObj.votes.length}</strong> 人</p>`;
 
-            if (!displayData || !displayData.questions || displayData.questions.length === 0) { 
-                alert("当前没有题目数据。"); 
-                return; 
-            }
-            
-            let html = `<p>参与人数：<strong>${displayData.votes ? displayData.votes.length : 0}</strong> 人</p>`;
-
-            displayData.questions.forEach((q, index) => {
+            dataObj.questions.forEach((q, index) => {
                 html += `<div style="margin-top:20px; border-top:1px solid #eee; padding-top:10px;"><h3 style="margin-bottom:10px;">${index + 1}. ${q.title}</h3>`;
-                let counts = {}; 
-                q.options.forEach(opt => counts[opt] = 0);
-                
-                if (displayData.votes) {
-                    displayData.votes.forEach(vote => {
-                        (vote.answers[`q_${q.id}`] || []).forEach(ans => { 
-                            if (counts[ans] !== undefined) counts[ans]++; 
-                        });
-                    });
-                }
-                
-                const totalVotesForQ = displayData.votes ? displayData.votes.length : 0;
+                let counts = {}; q.options.forEach(opt => counts[opt] = 0);
+                dataObj.votes.forEach(vote => {
+                    (vote.answers[`q_${q.id}`] || []).forEach(ans => { if (counts[ans] !== undefined) counts[ans]++; });
+                });
                 q.options.forEach(opt => {
-                    const percent = totalVotesForQ === 0 ? 0 : Math.round((counts[opt] / totalVotesForQ) * 100);
+                    const percent = dataObj.votes.length === 0 ? 0 : Math.round((counts[opt] / dataObj.votes.length) * 100);
                     html += `<div style="margin-bottom: 8px;"><span>${opt} - <strong>${counts[opt]}票</strong> (${percent}%)</span><div class="result-bar" style="width: ${percent}%;"></div></div>`;
                 });
                 html += `</div>`;
             });
             content.innerHTML = html;
-            document.getElementById('visualModal').classList.remove('hidden');
-            document.body.classList.remove('sidebar-open'); // 展示可视化时自动收起侧边栏，让屏幕更清爽
         }
 
         function closeVisualization() { document.getElementById('visualModal').classList.add('hidden'); }
