@@ -67,17 +67,19 @@
             font-size: 0.95rem;
             line-height: 1.5;
         }
-        /* 加载动画样式 */
-        #loading {
-            margin-top: 5rem;
+        /* 加载与提示样式 */
+        #statusMessage {
+            margin-top: 3rem;
             color: #7f8c8d;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
+            flex-direction: column;
             gap: 10px;
+            text-align: center;
         }
         .spinner {
-            width: 20px; height: 20px;
+            width: 24px; height: 24px;
             border: 3px solid #bdc3c7;
             border-top-color: #4a90e2;
             border-radius: 50%;
@@ -92,99 +94,114 @@
         <h1>帅哥的班级管理工具箱</h1>
     </header>
 
-    <div id="loading">
-        <div class="spinner"></div>
-        <span>正在扫描工具箱...</span>
+    <div id="statusMessage">
+        <div class="spinner" id="spinner"></div>
+        <span id="statusText">正在自动扫描工具箱最新组件...</span>
     </div>
 
     <div class="container" id="toolsContainer" style="display: none;">
         </div>
 
     <script>
-        // 1. 旧工具的兼容预设（确保你以前做的工具图标和描述不丢失）
-        const knownTools = {
+        // 核心配置
+        const owner = 'Dzreal';
+        const repo = 'Class'; 
+
+        // 🛡️ 保底配置：把四大金刚写在这里。哪怕 GitHub API 彻底断连，页面也能渲染出这四个工具！
+        const fallbackTools = {
             "classseats.html": { icon: "🪑", title: "互动座位表", desc: "快速生成与调整学生座位安排，支持男女生分布与小组排列" },
             "classjournal.html": { icon: "📖", title: "班级日志", desc: "记录与查看班级日常事务与学生情况" },
-            "exceltrans.html": { icon: "📊", title: "表格数据处理", desc: "快速处理、转换与导出Excel表格数据" }
+            "exceltrans.html": { icon: "📊", title: "表格数据处理", desc: "快速处理、转换与导出Excel表格数据" },
+            "vote.html": { icon: "🗳️", title: "班级投票系统", desc: "支持单选多选、云端保存配置与记录的实时投票工具" }
         };
 
-        const owner = 'Dzreal';
-        const repo = 'Class';
         const container = document.getElementById('toolsContainer');
-        const loading = document.getElementById('loading');
+        const statusMessage = document.getElementById('statusMessage');
+        const statusText = document.getElementById('statusText');
+        const spinner = document.getElementById('spinner');
+
+        // 渲染卡片的函数
+        function renderCards(cardsData) {
+            container.innerHTML = '';
+            cardsData.forEach(data => {
+                const card = document.createElement('a');
+                card.href = data.url;
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="icon">${data.icon}</div>
+                    <h2>${data.title}</h2>
+                    <p>${data.desc}</p>
+                `;
+                container.appendChild(card);
+            });
+            container.style.display = 'grid';
+        }
 
         async function loadTools() {
             try {
-                // 2. 调用 GitHub API 获取仓库文件目录
-                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+                // 1. 请求 GitHub API (注意去掉了末尾的斜杠，这样更稳定)
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
                 const res = await fetch(apiUrl);
-                if (!res.ok) throw new Error('读取仓库列表失败');
+                
+                // 精准捕获 API 限流错误
+                if (!res.ok) {
+                    if (res.status === 403) throw new Error('触发了GitHub API每小时60次的匿名请求限流限制');
+                    if (res.status === 404) throw new Error('未找到仓库，请检查库名大小写');
+                    throw new Error(`HTTP 异常 ${res.status}`);
+                }
+                
                 const files = await res.json();
-
-                // 3. 筛选出所有后缀为 .html 的文件（并排除 index 本身）
+                
+                // 2. 筛选出所有后缀为 .html 的文件
                 const htmlFiles = files.filter(f => f.name.endsWith('.html') && f.name !== 'index.html');
 
-                // 4. 并发拉取每个 HTML 文件的源码，提取标题和描述
+                // 3. 并发拉取并解析每个 HTML 文件
                 const cardsData = await Promise.all(htmlFiles.map(async (file) => {
-                    // 默认基础信息
                     let title = file.name.replace('.html', '');
                     let desc = "点击进入使用该管理工具";
-                    let icon = "🛠️"; // 未知工具的默认图标
+                    let icon = "🛠️";
 
-                    // 优先使用预设（旧工具）
-                    if (knownTools[file.name]) {
-                        title = knownTools[file.name].title;
-                        desc = knownTools[file.name].desc;
-                        icon = knownTools[file.name].icon;
+                    // 如果属于已知工具，先赋默认值保证美观
+                    if (fallbackTools[file.name]) {
+                        title = fallbackTools[file.name].title;
+                        desc = fallbackTools[file.name].desc;
+                        icon = fallbackTools[file.name].icon;
                     }
 
-                    // 如果是新工具（不在预设里），尝试去解析它的源码读取 <title> 和 <meta>
+                    // 尝试抓取文件源码获取最新的 meta 配置
                     try {
                         const htmlRes = await fetch(file.name);
                         if (htmlRes.ok) {
                             const htmlText = await htmlRes.text();
-                            
-                            // 利用 DOMParser 解析 HTML
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(htmlText, 'text/html');
-                            
-                            // 读取网页标题
+                            const doc = new DOMParser().parseFromString(htmlText, 'text/html');
                             if (doc.title) title = doc.title;
-                            
-                            // 尝试读取特殊 meta 标签提取描述和图标（留给未来的扩展接口）
                             const metaDesc = doc.querySelector('meta[name="description"]');
                             if (metaDesc && metaDesc.content) desc = metaDesc.content;
-                            
                             const metaIcon = doc.querySelector('meta[name="icon"]');
                             if (metaIcon && metaIcon.content) icon = metaIcon.content;
                         }
-                    } catch (e) {
-                        console.warn(`无法读取 ${file.name} 的内部信息，使用默认描述。`);
-                    }
+                    } catch (e) { /* 忽略抓取失败，使用默认值 */ }
 
                     return { url: file.name, icon, title, desc };
                 }));
 
-                // 5. 渲染卡片到页面
-                cardsData.forEach(data => {
-                    const card = document.createElement('a');
-                    card.href = data.url;
-                    card.className = 'card';
-                    card.innerHTML = `
-                        <div class="icon">${data.icon}</div>
-                        <h2>${data.title}</h2>
-                        <p>${data.desc}</p>
-                    `;
-                    container.appendChild(card);
-                });
-
-                // 隐藏加载动画，显示工具网格
-                loading.style.display = 'none';
-                container.style.display = 'grid';
+                // 4. 成功后隐藏状态栏，渲染卡片
+                statusMessage.style.display = 'none';
+                renderCards(cardsData);
 
             } catch (error) {
-                loading.innerHTML = `⚠️ 加载失败: ${error.message} <br> (可能遇到网络波动，请刷新重试)`;
-                console.error(error);
+                console.warn("自动拉取失败，启用保底渲染模式:", error.message);
+                
+                // 启用保底渲染：转换预设好的四大核心工具并呈现
+                const fallbackData = Object.keys(fallbackTools).map(url => {
+                    return { url: url, ...fallbackTools[url] };
+                });
+                renderCards(fallbackData);
+
+                // 在上方显示优雅的降级提示
+                spinner.style.display = 'none';
+                statusText.innerHTML = `⚠️ 自动更新暂不可用 (${error.message})<br><span style="color:#2ecc71;font-size:14px;">已为您启动本地核心模式，不影响日常使用</span>`;
+                statusMessage.style.marginTop = "2rem";
             }
         }
 
