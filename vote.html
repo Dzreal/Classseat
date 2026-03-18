@@ -246,7 +246,8 @@
                 return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
             },
             async getSha(path) {
-                const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers });
+                // 修复点：添加 cache: 'no-store' 强制跳过浏览器缓存
+                const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers, cache: 'no-store' });
                 if (res.ok) { const data = await res.json(); return data.sha; }
                 return null;
             },
@@ -272,7 +273,8 @@
             async getFile(path, silent = false) {
                 if (!this.checkConfig(silent)) return null;
                 try {
-                    const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers });
+                    // 修复点：添加 cache: 'no-store' 强制获取最新数据，拒绝缓存幽灵
+                    const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers, cache: 'no-store' });
                     if (!res.ok) {
                         if (res.status === 404) return null; // 找不到文件正常返回 null
                         throw new Error('文件不存在或权限不足');
@@ -287,7 +289,8 @@
             async listFiles(dir) {
                 if (!this.checkConfig(true)) return [];
                 try {
-                    const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${dir}`, { headers: this.headers });
+                    // 修复点：同上，防止列表请求被缓存
+                    const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${dir}`, { headers: this.headers, cache: 'no-store' });
                     if (!res.ok) { if (res.status === 404) return []; throw new Error('获取列表失败'); }
                     const data = await res.json();
                     return data.filter(item => item.type === 'file').map(item => item.name);
@@ -413,8 +416,8 @@
         // --- 大屏展示免密逻辑模块 ---
         async function checkAndRenderBigScreenLogin() {
             if (!GitHub.config.token) return;
-            // 静默读取云端配置
-            const state = await GitHub.getFile('bigscreen_config.json', true);
+            // 静默读取云端配置 (已应用彻底拒绝缓存策略)
+            const state = await GitHub.getFile('votebigscreen_config.json', true);
             const area = document.getElementById('bigScreenArea');
             if (state && state.enabled) {
                 area.classList.remove('hidden');
@@ -425,7 +428,7 @@
         }
 
         async function initConfigBigScreenBtn() {
-            const state = await GitHub.getFile('bigscreen_config.json', true);
+            const state = await GitHub.getFile('votebigscreen_config.json', true);
             updateBigScreenBtnUI(state && state.enabled);
         }
 
@@ -436,7 +439,7 @@
             
             btn.innerText = "正在云端切换..."; btn.disabled = true;
             
-            const success = await GitHub.saveFile('bigscreen_config.json', { enabled: newState }, `Toggle big screen to ${newState}`);
+            const success = await GitHub.saveFile('votebigscreen_config.json', { enabled: newState }, `Toggle big screen to ${newState}`);
             
             btn.disabled = false;
             if (success) {
