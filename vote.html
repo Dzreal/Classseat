@@ -88,10 +88,10 @@
         <div class="left-panel-content">
             <div id="loginView">
                 <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
-                <input type="password" id="ghTokenLogin" placeholder="请输入 GitHub Token (与私有库通信必填)">
+                <input type="password" id="ghTokenLogin" placeholder="GitHub Token (新设备首次需填)" autocomplete="off" style="margin-bottom: 10px;">
                 <input type="password" id="adminPwd" placeholder="请输入管理员密码" autocomplete="off">
                 <button class="action-btn" id="loginBtn" onclick="verifyPassword()">解锁配置区</button>
-                <p style="font-size: 12px; color: #95a5a6; text-align: center;">说明：密码将通过验证您私有库中的文件进行核对。</p>
+                <p style="font-size: 12px; color: #95a5a6; text-align: center;">私有库云端实时验证，守护安全</p>
             </div>
 
             <div id="configView" class="hidden">
@@ -108,10 +108,11 @@
                         <button class="action-btn secondary small-btn" style="width: auto;" onclick="refreshCloudClasses()">🔄 获取</button>
                     </div>
                     
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
                         <button class="action-btn" onclick="loadCloudClass()">读取并应用该名单</button>
                         <button class="action-btn danger" onclick="deleteCloudClass()">删除该名单</button>
                     </div>
+
                     <p id="cloudLoadStatus" style="font-size: 13px; color: #1abc9c; margin-top: 5px; margin-bottom: 0; font-weight: bold;"></p>
                     
                     <hr style="border:0; border-top:1px dashed #455a64; margin:15px 0;">
@@ -221,14 +222,13 @@
                     'Content-Type': 'application/json'
                 };
             },
-            checkConfig() {
+            checkConfig(silent = false) {
                 if (!this.config.token) {
-                    alert('缺少 GitHub Token，无法访问私有库！请刷新页面重新输入。');
+                    if (!silent) alert('缺少 GitHub Token！请先填写 Token。');
                     return false;
                 }
                 return true;
             },
-            // 安全的 Base64 编解码，解决中文乱码问题
             encode(str) {
                 return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1)));
             },
@@ -263,10 +263,7 @@
                 if (!this.checkConfig()) return null;
                 try {
                     const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers });
-                    if (!res.ok) {
-                        if(res.status === 404) return null; // 文件不存在
-                        throw new Error('读取失败');
-                    }
+                    if (!res.ok) throw new Error('文件不存在或权限不足');
                     const data = await res.json();
                     return JSON.parse(this.decode(data.content));
                 } catch (e) {
@@ -334,45 +331,42 @@
 
         function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
         
-        // --- 登录模块改造：从云端校验密码 ---
-        function initGhConfig() {
-            document.getElementById('ghTokenLogin').value = localStorage.getItem('ghToken') || '';
-        }
-
         async function verifyPassword() {
-            const tokenInput = document.getElementById('ghTokenLogin').value.trim();
-            const pwdInput = document.getElementById('adminPwd').value;
-            
-            if (!tokenInput) { alert("需输入 GitHub Token 才能验证私有库权限！"); return; }
-            if (!pwdInput) { alert("请输入密码！"); return; }
-            
-            // 存入缓存供后续 API 使用
-            localStorage.setItem('ghToken', tokenInput);
-            const btn = document.getElementById('loginBtn');
-            btn.innerText = "正在向云端核对...";
-            btn.disabled = true;
-
-            // 读取私有库根目录的 password.json
-            const cloudConfig = await GitHub.getFile('password.json');
-            
-            // 如果你还没在云端建立文件，为了不让你被锁死，暂时设定一个后备判定
-            let validPwd = "0329"; 
-            if (cloudConfig && cloudConfig.pwd) {
-                validPwd = String(cloudConfig.pwd);
-            } else {
-                console.warn("⚠️ 您的私有库中还没有 password.json 文件，当前暂时允许使用本地默认密码登录。");
+            const tokenLogin = document.getElementById('ghTokenLogin').value.trim();
+            if (tokenLogin) {
+                localStorage.setItem('ghToken', tokenLogin);
             }
 
-            if (pwdInput === validPwd) {
+            if (!GitHub.config.token) {
+                alert("首次使用或更换设备，请先在上方输入 GitHub Token！\n（有Token才能连接您的私有库验证密码）");
+                return;
+            }
+
+            const inputPwd = document.getElementById('adminPwd').value;
+            if (!inputPwd) { alert("请输入密码！"); return; }
+
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = "云端验证中..."; btn.disabled = true;
+
+            const pwdData = await GitHub.getFile('voteconfigpassword.json');
+            
+            btn.innerText = "解锁配置区"; btn.disabled = false;
+
+            if (!pwdData) {
+                alert("身份验证失败！\n请确认以下事项：\n1. Token是否有效\n2. 私有库 Class-Data 根目录下是否存在 voteconfigpassword.json 文件\n3. 文件内容格式是否正确。");
+                return;
+            }
+
+            // 兼容 {"password":"xxx"} 或 {"pwd":"xxx"}
+            const realPwd = pwdData.password || pwdData.pwd;
+
+            if (inputPwd === realPwd) {
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('configView').classList.remove('hidden');
-                document.getElementById('adminPwd').value = ''; // 清空密码框防泄露
-            } else {
-                alert("密码错误！或该 Token 无法读取配置。");
+                document.getElementById('adminPwd').value = ''; 
+            } else { 
+                alert("密码错误！"); 
             }
-            
-            btn.innerText = "解锁配置区";
-            btn.disabled = false;
         }
 
         function lockConfig() {
@@ -382,7 +376,13 @@
             document.body.classList.remove('sidebar-open');
         }
 
-        // --- 名单管理 ---
+        // --- GitHub 账号配置存取 ---
+        function initGhConfig() {
+            const token = localStorage.getItem('ghToken') || '';
+            document.getElementById('ghTokenLogin').value = token;
+        }
+
+        // --- 名单管理 (Excel -> GitHub / GitHub -> Local) ---
         function triggerExcelUpload() {
             if (!document.getElementById('newClassName').value.trim()) { alert('请先输入拟保存的名单名称！'); return; }
             document.getElementById('excelUpload').click();
@@ -415,9 +415,7 @@
                         if(success) {
                             alert(`✅ 成功读取 Excel 并已将其写入 GitHub: classeslists/${name}.json`);
                             appData.students = newStudents;
-                            // 防呆：导入新名单时，如果存在旧的投票记录，自动清空
-                            if (appData.votes.length > 0) appData.votes = [];
-                            
+                            appData.votes = []; // 导入新名单时，自动清空旧投票缓存
                             saveToLocal(); updateClassStatus(); refreshCloudClasses();
                             renderStudentDropdown();
                             document.getElementById('newClassName').value = '';
@@ -446,17 +444,17 @@
         async function loadCloudClass() {
             const fileName = document.getElementById('cloudClassList').value;
             if(!fileName) { alert('请先在下拉框选择名单'); return; }
+            
+            if (appData.votes.length > 0) {
+                if (!confirm("⚠️ 注意：载入新的班级名单将会清空当前正在进行的投票记录！\n如果你还需要当前的投票数据，请先点击【取消】并将其保存到云端。\n确定要清空并载入新名单吗？")) {
+                    return;
+                }
+            }
+
             const data = await GitHub.getFile(`classeslists/${fileName}`);
             if(data) {
                 appData.students = data;
-                
-                // 防呆处理：切换名单时主动询问是否清空现有的投票数据
-                if (appData.votes.length > 0) {
-                    if (confirm("检测到当前工作区还有遗留的投票数据，是否为您清空以便新名单重新开始？")) {
-                        appData.votes = [];
-                    }
-                }
-
+                appData.votes = []; 
                 saveToLocal(); updateClassStatus();
                 renderStudentDropdown();
                 document.getElementById('cloudLoadStatus').innerText = `已读取到“${fileName.replace('.json', '')}”共${data.length}人`;
@@ -464,16 +462,14 @@
             }
         }
 
-        // 新增：删除名单功能
         async function deleteCloudClass() {
             const fileName = document.getElementById('cloudClassList').value;
-            if(!fileName) { alert('请先在下拉框选择要删除的名单！'); return; }
-            if(confirm(`🚨 危险！确定要永久删除云端名单 [${fileName.replace('.json', '')}] 吗？`)) {
+            if(!fileName) { alert('请先在下拉框选择要删除的名单'); return; }
+            if(confirm(`🚨 危险操作！确定要永久删除云端名单 [${fileName.replace('.json', '')}] 吗？`)) {
                 const success = await GitHub.deleteFile(`classeslists/${fileName}`, `Delete class list ${fileName}`);
                 if(success) { 
-                    alert('已彻底删除该名单！'); 
+                    alert('已彻底删除！'); 
                     refreshCloudClasses(); 
-                    document.getElementById('cloudLoadStatus').innerText = '';
                 }
             }
         }
@@ -612,8 +608,8 @@
             if (confirm("确定要清空目前工作区的投票结果吗？（只要不覆盖保存，云端的备份不受影响）")) {
                 appData.votes = [];
                 saveToLocal(); 
-                renderStudentDropdown();
-                alert("本地投票已彻底清空，已重置为所有人均未投票状态。");
+                renderStudentDropdown(); 
+                alert("本地投票已清空，可开启下一轮投票。");
             }
         }
 
@@ -650,7 +646,7 @@
             }
             
             if (!selectedValue) { 
-                alert("请下拉选择您的学号和姓名！"); 
+                alert("请选择您的学号和姓名！"); 
                 return; 
             }
 
@@ -706,7 +702,7 @@
 
         function closeVisualization() { document.getElementById('visualModal').classList.add('hidden'); }
 
-        // --- 本地缓存机制 ---
+        // --- 本地缓存机制（防刷新丢失）---
         function saveToLocal() { localStorage.setItem('classVoteData', JSON.stringify(appData)); }
         function loadFromLocal() {
             try {
