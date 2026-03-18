@@ -14,34 +14,79 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #455a64; border-radius: 4px; }
         
-        /* --- 全局固定左上角的菜单按钮 --- */
-        .menu-toggle {
-            position: fixed; top: 15px; left: 20px; z-index: 1005; 
-            background: transparent; color: #2c3e50; border: none; padding: 8px 12px; border-radius: 6px; 
-            cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px; 
-            transition: color 0.3s ease, background-color 0.3s ease;
-        }
-        .menu-toggle:hover { background-color: rgba(0, 0, 0, 0.05); }
-        body.sidebar-open .menu-toggle { color: #ffffff; }
-        body.sidebar-open .menu-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
-
-        /* --- 核心动画区域：左侧配置区 --- */
+        /* --- 新版 Gemini 风格：左右一分为二的侧边栏 --- */
         .left-panel { 
-            width: 0; background-color: #2c3e50; color: white; overflow: hidden; flex-shrink: 0;
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000;
+            width: 64px; /* 闭合状态：保留细条 */
+            background-color: #2c3e50; 
+            color: white; 
+            overflow: hidden; 
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
+            z-index: 1000;
         }
         body.sidebar-open .left-panel { width: 420px; max-width: 85vw; }
 
-        .left-panel-content {
-            width: 420px; max-width: 85vw; height: calc(100vh - 70px); margin-top: 70px; 
-            padding: 0px 20px 30px 20px; overflow-y: auto; opacity: 0; transition: opacity 0.2s ease;
+        /* 左侧面板的头部：包含菜单按钮 */
+        .left-header {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px; /* 控制汉堡菜单的左右边距 */
+            flex-shrink: 0;
+            white-space: nowrap;
         }
-        body.sidebar-open .left-panel-content { opacity: 1; transition: opacity 0.3s ease 0.1s; }
+
+        /* 菜单按钮本身 */
+        .menu-toggle {
+            background: transparent; 
+            color: #ffffff; 
+            border: none; 
+            padding: 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            width: 100%;
+            text-align: left;
+            transition: background-color 0.3s ease;
+        }
+        .menu-toggle:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .menu-icon { font-size: 22px; line-height: 1; min-width: 24px; text-align: center; }
+        
+        /* 菜单文字：闭合时隐藏，展开时浮现 */
+        .menu-text { font-size: 18px; font-weight: bold; opacity: 0; transition: opacity 0.2s ease; }
+        body.sidebar-open .menu-text { opacity: 1; transition: opacity 0.3s ease 0.1s; }
+
+        /* 配置区内容主体 */
+        .left-panel-content {
+            flex: 1;
+            width: 420px; 
+            max-width: 85vw; 
+            padding: 0 20px 30px 20px; 
+            overflow-y: auto; 
+            opacity: 0; 
+            visibility: hidden; /* 防止闭合时焦点和点击溢出 */
+            transition: opacity 0.2s ease, visibility 0.2s;
+        }
+        body.sidebar-open .left-panel-content { 
+            opacity: 1; 
+            visibility: visible;
+            transition: opacity 0.3s ease 0.1s, visibility 0s; 
+        }
 
         /* --- 右侧投票区 --- */
         .right-panel { 
-            flex-grow: 1; height: 100vh; padding: 70px 40px 40px 40px; overflow-y: auto; 
-            background-color: #ffffff; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+            flex-grow: 1; 
+            height: 100vh; 
+            padding: 40px 40px 40px 40px; /* 移除以前为了避开悬浮按钮留的顶部70px空隙 */
+            overflow-y: auto; 
+            background-color: #ffffff; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative;
         }
 
         /* --- 控件样式 --- */
@@ -80,11 +125,14 @@
 </head>
 <body>
 
-    <button class="menu-toggle" onclick="toggleSidebar()">
-        <span style="font-size: 22px; line-height: 1;">☰</span> <span>配置面板</span>
-    </button>
-
     <div class="left-panel" id="leftPanel">
+        <div class="left-header">
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <span class="menu-icon">☰</span>
+                <span class="menu-text">配置面板</span>
+            </button>
+        </div>
+
         <div class="left-panel-content">
             <div id="loginView">
                 <h2 style="text-align: center; margin-top: 0;">管理员权限验证</h2>
@@ -219,7 +267,6 @@
         const GitHub = {
             get config() {
                 return {
-                    // 读取顺序：输入框 -> 缓存 -> 空
                     token: document.getElementById('ghTokenLogin').value.trim() || localStorage.getItem('ghToken') || '',
                     owner: 'Dzreal', 
                     repo: 'Class-Data' 
@@ -246,7 +293,6 @@
                 return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
             },
             async getSha(path) {
-                // 修复点：添加 cache: 'no-store' 强制跳过浏览器缓存
                 const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers, cache: 'no-store' });
                 if (res.ok) { const data = await res.json(); return data.sha; }
                 return null;
@@ -273,10 +319,9 @@
             async getFile(path, silent = false) {
                 if (!this.checkConfig(silent)) return null;
                 try {
-                    // 修复点：添加 cache: 'no-store' 强制获取最新数据，拒绝缓存幽灵
                     const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${path}`, { headers: this.headers, cache: 'no-store' });
                     if (!res.ok) {
-                        if (res.status === 404) return null; // 找不到文件正常返回 null
+                        if (res.status === 404) return null; 
                         throw new Error('文件不存在或权限不足');
                     }
                     const data = await res.json();
@@ -289,7 +334,6 @@
             async listFiles(dir) {
                 if (!this.checkConfig(true)) return [];
                 try {
-                    // 修复点：同上，防止列表请求被缓存
                     const res = await fetch(`https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${dir}`, { headers: this.headers, cache: 'no-store' });
                     if (!res.ok) { if (res.status === 404) return []; throw new Error('获取列表失败'); }
                     const data = await res.json();
@@ -345,16 +389,13 @@
             renderStudentDropdown();
         };
 
-        // 切换侧边栏，并且触发免密大屏检查
         function toggleSidebar() { 
             document.body.classList.toggle('sidebar-open'); 
-            // 如果侧边栏打开，并且处于登录状态，则检查大屏开关
             if (document.body.classList.contains('sidebar-open') && !document.getElementById('loginView').classList.contains('hidden')) {
                 checkAndRenderBigScreenLogin();
             }
         }
         
-        // 当用户在新设备粘贴 Token 时，自动触发检查
         function syncTokenAndCheck() {
             const token = document.getElementById('ghTokenLogin').value.trim();
             if (token) {
@@ -395,7 +436,7 @@
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('configView').classList.remove('hidden');
                 document.getElementById('adminPwd').value = ''; 
-                initConfigBigScreenBtn(); // 进入配置区后初始化大屏按钮状态
+                initConfigBigScreenBtn(); 
             } else { 
                 alert("密码错误！"); 
             }
@@ -416,7 +457,6 @@
         // --- 大屏展示免密逻辑模块 ---
         async function checkAndRenderBigScreenLogin() {
             if (!GitHub.config.token) return;
-            // 静默读取云端配置 (已应用彻底拒绝缓存策略)
             const state = await GitHub.getFile('votebigscreen_config.json', true);
             const area = document.getElementById('bigScreenArea');
             if (state && state.enabled) {
@@ -447,7 +487,7 @@
                 alert(`✅ 免密大屏展示已${newState ? '开启' : '关闭'}！`);
             } else {
                 alert("设置失败，请重试！");
-                updateBigScreenBtnUI(isCurrentlyEnabled); // 回滚 UI
+                updateBigScreenBtnUI(isCurrentlyEnabled); 
             }
         }
 
@@ -500,8 +540,7 @@
             }
         }
 
-
-        // --- 名单管理 (Excel -> GitHub / GitHub -> Local) ---
+        // --- 名单管理 ---
         function triggerExcelUpload() {
             if (!document.getElementById('newClassName').value.trim()) { alert('请先输入拟保存的名单名称！'); return; }
             document.getElementById('excelUpload').click();
@@ -534,7 +573,7 @@
                         if(success) {
                             alert(`✅ 成功读取 Excel 并已将其写入 GitHub: classeslists/${name}.json`);
                             appData.students = newStudents;
-                            appData.votes = []; // 导入新名单时，自动清空旧投票缓存
+                            appData.votes = []; 
                             saveToLocal(); updateClassStatus(); refreshCloudClasses();
                             renderStudentDropdown();
                             document.getElementById('newClassName').value = '';
@@ -797,14 +836,13 @@
             renderStudentDropdown(); 
         }
 
-        // --- 可视化 (统一抽离渲染逻辑) ---
+        // --- 可视化 ---
         function showVisualization() {
             if (appData.questions.length === 0) { alert("当前没有题目数据。"); return; }
             renderVisualizationData(appData);
             document.getElementById('visualModal').classList.remove('hidden');
         }
 
-        // 公共的数据解析与渲染函数
         function renderVisualizationData(dataObj) {
             const content = document.getElementById('visualContent');
             let html = `<p>当前读取参与人数：<strong>${dataObj.votes.length}</strong> 人</p>`;
@@ -826,7 +864,7 @@
 
         function closeVisualization() { document.getElementById('visualModal').classList.add('hidden'); }
 
-        // --- 本地缓存机制（防刷新丢失）---
+        // --- 本地缓存机制 ---
         function saveToLocal() { localStorage.setItem('classVoteData', JSON.stringify(appData)); }
         function loadFromLocal() {
             try {
