@@ -14,7 +14,7 @@
         font-family: 'Microsoft YaHei', sans-serif; 
         margin: 20px; 
         background-color: #f4f6f9;
-        -webkit-tap-highlight-color: transparent; /* 去除手机点击的高亮底色 */
+        -webkit-tap-highlight-color: transparent;
     }
     h1 { text-align: center; color: #333; margin-bottom: 30px; }
     
@@ -23,7 +23,7 @@
         display: flex;
         gap: 30px;
         align-items: flex-start;
-        flex-wrap: wrap; /* 兼容手机端小屏幕折行 */
+        flex-wrap: wrap;
     }
 
     /* 左侧：设置面板和名单 */
@@ -69,17 +69,17 @@
     .upload-label:hover { background: #1976d2; }
     .upload-tip { font-size: 12px; color: #666; margin-top: 8px; }
 
-    /* 名单池 (完美解决长列表拖拽痛点) */
+    /* 名单池 (解决长列表拖拽痛点) */
     .pools { display: flex; gap: 10px; }
     .pool-col { 
         flex: 1; 
-        height: 60vh; /* 设定高度为屏幕视口的60% */
-        min-height: 400px; /* 保证有一个最低高度 */
-        overflow-y: auto; /* 核心：超出部分内部滚动条，不撑开整个网页 */
+        height: 60vh; 
+        min-height: 400px; 
+        overflow-y: auto; 
         border: 2px dashed #bbb; 
         border-radius: 6px; 
         padding: 10px; 
-        padding-top: 0; /* 配合标题吸顶 */
+        padding-top: 0; 
         background-color: #fafafa; 
         display: flex; 
         flex-direction: column; 
@@ -100,7 +100,7 @@
         padding-bottom: 5px;
         padding-top: 10px;
         transition: 0.3s; 
-        position: sticky; /* 标题吸顶 */
+        position: sticky; 
         top: 0; 
         background-color: #fafafa; 
         z-index: 10;
@@ -154,7 +154,8 @@
     .rect-tool { position: absolute; right: 0; top: 20px; padding: 10px 20px; background: #9c27b0; color: #fff; font-weight: bold; border-radius: 6px; cursor: grab; border: 2px dashed #e1bee7; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; touch-action: none; }
     .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
 
-    .student { width: 60px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2; touch-action: none; }
+    /* 这里增加了 flex-shrink: 0; 防止名字框在过多的情况下被挤压变形 */
+    .student { width: 60px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2; touch-action: none; }
     .student.boy { background-color: #64b5f6; color: white; border: 1px solid #1e88e5; }
     .student.girl { background-color: #f06292; color: white; border: 1px solid #d81b60; }
     .student:active { cursor: grabbing; }
@@ -179,11 +180,10 @@
             display: flex; 
             flex-direction: column; 
         }
-        .left-panel { display: contents; } /* 打破原本的左侧包裹，重新垂直排序 */
+        .left-panel { display: contents; } 
         
         .setup-box { order: 1; width: 100%; box-sizing: border-box; }
         
-        /* 教室区：固定在屏幕上方，最大高度不超过屏幕一半 */
         .right-panel { 
             order: 2; 
             width: 100%; 
@@ -191,22 +191,20 @@
             position: sticky; 
             top: 0; 
             z-index: 1000; 
-            max-height: 55vh; /* 保证留出足够的下半部分滑动 */
+            max-height: 55vh; 
             overflow-y: auto; 
             background: #fff; 
-            border-bottom: 4px solid #ff9800; /* 分界线 */
+            border-bottom: 4px solid #ff9800; 
             box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
             margin-bottom: 15px;
             padding: 10px;
         }
         
-        /* 待分配区：取消任何悬浮锁定，回归最自然的网页滑动，绝对不会再消失 */
         .list-box { 
             order: 3; 
             width: 100%; 
             box-sizing: border-box; 
         }
-        /* 手机端由于教室已经吸顶，名单可以取消固定高度，顺应原生滑动 */
         .pool-col {
             height: auto;
             overflow-y: visible;
@@ -344,8 +342,8 @@
     // === 变量声明（严格避免重复声明） ===
     let studentsData = [];
     let isMirrored = false; 
-    let isBoxesRemoved = false; // 记录小组框是否被去除
-    let savedBoxesData = [];    // 保存被去除的小组框数据
+    let isBoxesRemoved = false; 
+    let savedBoxesData = [];    
     let customBoxes = [];
     let colorIndexTracker = 0;
     
@@ -504,7 +502,6 @@
         }
     }
 
-    // === 新增：动态更新名单人数统计 ===
     function updatePoolCounts() {
         let h2 = document.querySelector('.list-box h2');
         let h3Boys = poolBoys.querySelector('h3');
@@ -574,7 +571,6 @@
             });
         }
 
-        // 读取后默认重置去除状态
         isBoxesRemoved = false;
         savedBoxesData = [];
         let toggleBtn = document.getElementById('btn-toggle-boxes');
@@ -736,25 +732,22 @@
         customBoxes.forEach(b => b.updateLayout());
     }
     
-    // === 彻底去除/恢复小组框功能 ===
     function toggleBoxes() {
         let btn = document.getElementById('btn-toggle-boxes');
         
         if (!isBoxesRemoved) {
-            // 执行去除：保存当前所有框的数据并从DOM中彻底移除
             savedBoxesData = customBoxes.map(b => ({
                 seats: b.attachedSeats.map(s => s.id),
                 color: b.el.style.borderColor
             }));
             
             customBoxes.forEach(b => b.el.remove());
-            customBoxes = []; // 清空当前框数组
+            customBoxes = []; 
             
             isBoxesRemoved = true;
             btn.innerHTML = '🔲 恢复所有小组框';
-            btn.style.backgroundColor = '#9e9e9e'; // 置灰
+            btn.style.backgroundColor = '#9e9e9e'; 
         } else {
-            // 执行恢复：按照之前保存的数据重新生成框
             savedBoxesData.forEach(boxData => {
                 let seats = boxData.seats.map(id => document.getElementById(id)).filter(s => s !== null);
                 if (seats.length > 0) {
@@ -762,10 +755,10 @@
                 }
             });
             
-            savedBoxesData = []; // 清空保存池
+            savedBoxesData = []; 
             isBoxesRemoved = false;
             btn.innerHTML = '🔲 去除所有小组框';
-            btn.style.backgroundColor = ''; // 恢复CSS默认
+            btn.style.backgroundColor = ''; 
         }
     }
 
@@ -773,7 +766,6 @@
         let wasMirrored = isMirrored;
         isMirrored = false; 
         
-        // 重新生成时重置小组框的去除状态
         isBoxesRemoved = false;
         savedBoxesData = [];
         let toggleBtn = document.getElementById('btn-toggle-boxes');
@@ -1074,7 +1066,6 @@
         updatePoolCounts();
     }
 
-    // === 处理原生鼠标长按拖拽通用逻辑 ===
     function processDrop(target, draggedEl) {
         if (!draggedEl) return;
         if (draggedEl.id === 'rect-tool') {
@@ -1124,7 +1115,6 @@
         updatePoolCounts();
     }
 
-    // === 手机端 Touch 原生拖拽 ===
     let touchDragTarget = null;
     let touchStartX = 0, touchStartY = 0;
     let ghostEl = null;
@@ -1216,7 +1206,6 @@
         let moveBtn = document.createElement('div');
         moveBtn.className = 'move-btn';
         moveBtn.innerText = '✥';
-        // 绑定双端移动事件
         moveBtn.onmousedown = function(e) { startMoveBox(e, boxObj); };
         moveBtn.ontouchstart = function(e) { startMoveBox(e, boxObj); };
         boxContainer.appendChild(moveBtn);
@@ -1234,7 +1223,6 @@
             let handle = document.createElement('div');
             handle.className = 'handle ' + pos;
             handle.style.borderColor = color;
-            // 绑定双端拉伸事件
             handle.onmousedown = function(e) { startResize(e, boxObj, pos); };
             handle.ontouchstart = function(e) { startResize(e, boxObj, pos); };
             boxContainer.appendChild(handle);
@@ -1274,7 +1262,6 @@
 
     window.addEventListener('resize', () => customBoxes.forEach(b => b.updateLayout()));
 
-    // === 兼容双端操作的统一追踪逻辑 ===
     function startResize(e, box, pos) {
         e.preventDefault(); e.stopPropagation();
         activeBox = box; activeHandle = pos;
