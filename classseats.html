@@ -69,10 +69,42 @@
     .upload-label:hover { background: #1976d2; }
     .upload-tip { font-size: 12px; color: #666; margin-top: 8px; }
 
-    /* 名单池 */
+    /* 名单池 (完美解决长列表拖拽痛点) */
     .pools { display: flex; gap: 10px; }
-    .pool-col { flex: 1; min-height: 500px; border: 2px dashed #bbb; border-radius: 6px; padding: 10px; background-color: #fafafa; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .pool-col h3 { margin: 0 0 10px 0; font-size: 16px; color: #666; text-align: center; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 5px; transition: 0.3s; }
+    .pool-col { 
+        flex: 1; 
+        height: 60vh; /* 设定高度为屏幕视口的60% */
+        min-height: 400px; /* 保证有一个最低高度 */
+        overflow-y: auto; /* 核心：超出部分内部滚动条，不撑开整个网页 */
+        border: 2px dashed #bbb; 
+        border-radius: 6px; 
+        padding: 10px; 
+        padding-top: 0; /* 配合标题吸顶 */
+        background-color: #fafafa; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        gap: 10px; 
+    }
+    /* 自定义滚动条美化 */
+    .pool-col::-webkit-scrollbar { width: 6px; }
+    .pool-col::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+    
+    .pool-col h3 { 
+        margin: 0 0 10px 0; 
+        font-size: 16px; 
+        color: #666; 
+        text-align: center; 
+        width: 100%; 
+        border-bottom: 1px solid #ddd; 
+        padding-bottom: 5px;
+        padding-top: 10px;
+        transition: 0.3s; 
+        position: sticky; /* 标题吸顶 */
+        top: 0; 
+        background-color: #fafafa; 
+        z-index: 10;
+    }
 
     /* 右侧：教室区域 */
     .right-panel {
@@ -173,6 +205,11 @@
             order: 3; 
             width: 100%; 
             box-sizing: border-box; 
+        }
+        /* 手机端由于教室已经吸顶，名单可以取消固定高度，顺应原生滑动 */
+        .pool-col {
+            height: auto;
+            overflow-y: visible;
         }
         
         .bottom-area { margin-top: 20px; }
@@ -1467,4 +1504,3 @@
 
 </body>
 </html>
-
