@@ -198,10 +198,8 @@
                 });
                 renderCards(fallbackData);
 
-                // 在上方显示优雅的降级提示
-                spinner.style.display = 'none';
-                statusText.innerHTML = `⚠️ 自动更新暂不可用 (${error.message})<br><span style="color:#2ecc71;font-size:14px;">已为您启动本地核心模式，不影响日常使用</span>`;
-                statusMessage.style.marginTop = "2rem";
+                // 直接隐藏状态栏，静默降级
+                statusMessage.style.display = 'none';
             }
         }
 
