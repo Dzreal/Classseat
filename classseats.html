@@ -8,213 +8,236 @@
 
 <link rel="stylesheet" href="https://unpkg.com/mobile-drag-drop@2.3.0/default.min.css">
 <script src="https://unpkg.com/mobile-drag-drop@2.3.0/index.min.js"></script>
+    <style>
+        body { 
+            font-family: Roboto, 'Microsoft YaHei', sans-serif; 
+            margin: 20px; 
+            background-color: #f8f9fa;
+            -webkit-tap-highlight-color: transparent;
+            color: #1a1c1e;
+        }
+        h1 { text-align: center; color: #1a1c1e; margin-bottom: 30px; font-weight: 500; font-size: 28px; }
+        
+        /* === 主体布局 === */
+        .main-container {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
 
-<style>
-    body { 
-        font-family: 'Microsoft YaHei', sans-serif; 
-        margin: 20px; 
-        background-color: #f4f6f9;
-        -webkit-tap-highlight-color: transparent;
-    }
-    h1 { text-align: center; color: #333; margin-bottom: 30px; }
-    
-    /* === 主体布局 === */
-    .main-container {
-        display: flex;
-        gap: 30px;
-        align-items: flex-start;
-        flex-wrap: wrap;
-    }
+        /* 左侧：设置面板和名单 */
+        .left-panel {
+            width: 340px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
 
-    /* 左侧：设置面板和名单 */
-    .left-panel {
-        width: 340px;
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
+        .setup-box, .list-box {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: none;
+        }
+        
+        .left-panel h2 {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #1a1c1e;
+            border-bottom: none;
+            padding-bottom: 0;
+            font-weight: 500;
+        }
 
-    .setup-box, .list-box {
-        background: #fff;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    
-    .left-panel h2 {
-        text-align: center;
-        font-size: 18px;
-        margin-top: 0;
-        margin-bottom: 15px;
-        color: #444;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
-    }
+        /* 座位设置表单 */
+        .setup-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; }
+        .setup-form label { display: flex; align-items: center; justify-content: space-between; background: transparent; padding: 4px 0; border-radius: 0; border: none; font-weight: 500; color: #44474e;}
+        .setup-form select { padding: 4px 8px; font-size: 14px; outline: none; border: 1px solid #c2c7cf; border-radius: 4px; background-color: #fff; color: #1a1c1e; font-family: inherit; cursor: pointer; transition: 0.2s; box-shadow: none;}
+        .setup-form select:hover { border-color: #8e9196; }
+        
+        .btn-generate {
+            grid-column: span 2; padding: 12px; background-color: #006a6a; color: white; font-weight: 500; border: none; border-radius: 9999px; cursor: pointer; font-size: 15px; transition: all 0.2s cubic-bezier(0.2, 0, 0, 1); display: flex; justify-content: center; align-items: center; margin-top: 8px;
+        }
+        .btn-generate:hover { background-color: #004d4d; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-1px);}
 
-    /* 座位设置表单 */
-    .setup-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 15px; }
-    .setup-form label { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 6px 10px; border-radius: 4px; border: 1px solid #ddd; }
-    .setup-form select { padding: 4px; font-size: 14px; outline: none; border: 1px solid #ccc; border-radius: 4px; }
-    
-    .btn-generate {
-        grid-column: span 2; padding: 10px; background-color: #ff9800; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); transition: 0.2s;
-    }
-    .btn-generate:hover { background-color: #f57c00; }
+        /* 导入文件区域 */
+        .upload-area { grid-column: span 2; padding: 16px; background-color: #f1f4f8; border: 2px dashed #c2c7cf; border-radius: 8px; text-align: center; margin-bottom: 8px; margin-top: 8px; transition: 0.2s;}
+        .upload-area:hover { border-color: #0061a4; background-color: #e8f0fe;}
+        .upload-area input[type="file"] { display: none; }
+        .upload-label { display: inline-block; background: #e1e2e8; color: #1a1c1e; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 14px; transition: 0.2s; box-shadow: none; border: none;}
+        .upload-label:hover { background: #c2c7cf; box-shadow: none; transform: none;}
+        .upload-tip { font-size: 12px; color: #44474e; margin-top: 12px; }
 
-    /* 导入文件区域 */
-    .upload-area { grid-column: span 2; padding: 12px; background-color: #e3f2fd; border: 2px dashed #2196f3; border-radius: 6px; text-align: center; margin-bottom: 5px; }
-    .upload-area input[type="file"] { display: none; }
-    .upload-label { display: inline-block; background: #2196f3; color: white; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
-    .upload-label:hover { background: #1976d2; }
-    .upload-tip { font-size: 12px; color: #666; margin-top: 8px; }
-
-    /* 名单池 (解决长列表拖拽痛点) */
-    .pools { display: flex; gap: 10px; }
-    .pool-col { 
-        flex: 1; 
-        height: 60vh; 
-        min-height: 400px; 
-        overflow-y: auto; 
-        border: 2px dashed #bbb; 
-        border-radius: 6px; 
-        padding: 10px; 
-        padding-top: 0; 
-        background-color: #fafafa; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        gap: 10px; 
-    }
-    /* 自定义滚动条美化 */
-    .pool-col::-webkit-scrollbar { width: 6px; }
-    .pool-col::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
-    
-    .pool-col h3 { 
-        margin: 0 0 10px 0; 
-        font-size: 16px; 
-        color: #666; 
-        text-align: center; 
-        width: 100%; 
-        border-bottom: 1px solid #ddd; 
-        padding-bottom: 5px;
-        padding-top: 10px;
-        transition: 0.3s; 
-        position: sticky; 
-        top: 0; 
-        background-color: #fafafa; 
-        z-index: 10;
-    }
-
-    /* 右侧：教室区域 */
-    .right-panel {
-        flex: 1; display: flex; flex-direction: column; align-items: center; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow-x: auto;
-    }
-
-    .blackboard { width: 60%; height: 40px; background-color: #4caf50; color: white; text-align: center; line-height: 40px; margin: 0 auto 10px auto; border-radius: 5px; font-weight: bold; letter-spacing: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: margin 0.3s; }
-    .instruction-tip { font-size: 13px; color: #888; margin-bottom: 30px; background: #fff9c4; padding: 5px 15px; border-radius: 12px; }
-    .instruction-tip b { color: #d32f2f; }
-
-    #classroom-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
-    #classroom { display: flex; justify-content: center; gap: 30px; position: relative; margin: 0 80px; }
-
-    .door { position: absolute; top: 0; width: 40px; height: 100px; background: #8d6e63; border: 3px solid #5d4037; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; writing-mode: vertical-rl; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); font-size: 18px; letter-spacing: 5px; }
-    .door.left { left: -70px; } .door.right { right: -70px; }
-    
-    .group { display: flex; flex-direction: column; gap: 15px; padding: 15px; background: #fdfdfd; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .subgroup { display: grid; gap: 8px; padding: 10px; border-radius: 8px; background-color: transparent; }
-    
-    .seat { width: 66px; height: 40px; border: 2px dashed #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background-color: #f9f9f9; cursor: pointer; position: relative; }
-    .seat:hover { border-color: #999; }
-    .seat.deleted { border: 1px dashed #e0e0e0; background-color: transparent; opacity: 0.3; }
-    .seat.deleted:hover { border-color: #4CAF50; opacity: 0.8; background-color: #e8f5e9; }
-    .seat.deleted::after { content: "双击恢复"; font-size: 11px; color: #4CAF50; font-weight: bold; display: none; }
-    .seat.deleted:hover::after { display: block; }
-
-    /* 底部控制区 */
-    .bottom-area { width: 100%; margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 15px; border-top: 2px dashed #eee; padding-top: 20px; position: relative; }
-    .controls-row { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; width: 100%; }
-    .controls-row button { padding: 10px 15px; font-size: 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.2s; }
-    .controls-row button:hover { opacity: 0.8; transform: translateY(-1px); }
-    
-    .btn-load { background-color: #2196F3; } .btn-save { background-color: #4CAF50; } .btn-reset { background-color: #f44336; }
-    .btn-random { background-color: #673ab7; } .btn-rotate { background-color: #009688; } .btn-export { background-color: #795548; } .btn-mirror { background-color: #607d8b; }
-    .btn-toggle-boxes { background-color: #ff5722; }
-    
-    .btn-import-label { display: inline-block; padding: 10px 15px; font-size: 15px; font-weight: bold; border-radius: 5px; cursor: pointer; color: white; background-color: #607d8b; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.2s; }
-    .btn-import-label:hover { opacity: 0.8; transform: translateY(-1px); }
-    .save-group { display: flex; align-items: center; background-color: #e8f5e9; padding: 5px; border-radius: 6px; border: 1px solid #c8e6c9; }
-    .save-group select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; outline: none; }
-
-    .github-sync-area { width: 100%; max-width: 800px; background-color: #24292e; color: #fff; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 10px; }
-    .github-sync-row { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: center; flex-wrap: wrap; }
-    .github-sync-area input[type="password"] { padding: 8px; border-radius: 4px; border: 1px solid #555; background: #333; color: white; width: 300px; max-width: 90%; }
-    .btn-github-save { background-color: #2ea043; } .btn-github-load { background-color: #0366d6; }
-
-    .rect-tool { position: absolute; right: 0; top: 20px; padding: 10px 20px; background: #9c27b0; color: #fff; font-weight: bold; border-radius: 6px; cursor: grab; border: 2px dashed #e1bee7; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; touch-action: none; }
-    .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
-
-    /* 这里增加了 flex-shrink: 0; 防止名字框在过多的情况下被挤压变形 */
-    .student { width: 60px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; z-index: 2; touch-action: none; }
-    .student.boy { background-color: #64b5f6; color: white; border: 1px solid #1e88e5; }
-    .student.girl { background-color: #f06292; color: white; border: 1px solid #d81b60; }
-    .student:active { cursor: grabbing; }
-    .dragging { opacity: 0.6; transform: scale(0.95); }
-
-    .custom-box { position: absolute; border: 4px dashed; pointer-events: none; z-index: 5; border-radius: 8px; transition: border-color 0.2s, background-color 0.2s; }
-    .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; touch-action: none; }
-    .custom-box .handle.top { top: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
-    .custom-box .handle.bottom { bottom: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
-    .custom-box .handle.left { top: 50%; left: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
-    .custom-box .handle.right { top: 50%; right: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
-    .custom-box .close-btn { position: absolute; top: -12px; right: -12px; width: 22px; height: 22px; background: #ff5252; color: white; border-radius: 50%; text-align: center; line-height: 20px; cursor: pointer; pointer-events: auto; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; }
-    .custom-box .close-btn:hover { background: #d50000; }
-    .custom-box .move-btn { position: absolute; top: -12px; left: -12px; width: 22px; height: 22px; background: #2196F3; color: white; border-radius: 50%; text-align: center; line-height: 20px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; touch-action: none; }
-    .custom-box .move-btn:hover { background: #1976D2; }
-
-    /* =========================================
-       完美修复：手机端适配（教室悬浮，名单自由滑动）
-       ========================================= */
-    @media (max-width: 800px) {
-        .main-container { 
+        /* 名单池 (解决长列表拖拽痛点) */
+        .pools { display: flex; gap: 12px; }
+        .pool-col { 
+            flex: 1; 
+            height: 60vh; 
+            min-height: 400px; 
+            overflow-y: auto; 
+            border: none; 
+            border-radius: 16px; 
+            padding: 12px; 
+            padding-top: 0; 
+            background-color: #f0f2f5; 
             display: flex; 
             flex-direction: column; 
+            align-items: center; 
+            gap: 12px; 
         }
-        .left-panel { display: contents; } 
+        /* 自定义滚动条美化 */
+        .pool-col::-webkit-scrollbar { width: 6px; }
+        .pool-col::-webkit-scrollbar-thumb { background: #c2c7cf; border-radius: 3px; }
         
-        .setup-box { order: 1; width: 100%; box-sizing: border-box; }
-        
-        .right-panel { 
-            order: 2; 
+        .pool-col h3 { 
+            margin: 0 0 12px 0; 
+            font-size: 15px; 
+            color: #44474e; 
+            text-align: center; 
             width: 100%; 
-            box-sizing: border-box; 
+            border-bottom: none; 
+            padding-bottom: 8px;
+            padding-top: 16px;
             position: sticky; 
             top: 0; 
-            z-index: 1000; 
-            max-height: 55vh; 
-            overflow-y: auto; 
-            background: #fff; 
-            border-bottom: 4px solid #ff9800; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
-            margin-bottom: 15px;
-            padding: 10px;
+            background-color: #f0f2f5; 
+            z-index: 10;
+            font-weight: 500;
         }
-        
-        .list-box { 
-            order: 3; 
-            width: 100%; 
-            box-sizing: border-box; 
-        }
-        .pool-col {
-            height: auto;
-            overflow-y: visible;
-        }
-        
-        .bottom-area { margin-top: 20px; }
-        .rect-tool { position: relative; right: auto; top: auto; margin-top: 15px; display: inline-block; }
-    }
 
-</style>
+        /* 右侧：教室区域 */
+        .right-panel {
+            flex: 1; display: flex; flex-direction: column; align-items: center; background: #ffffff; padding: 30px; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); position: relative; overflow-x: auto; border: none;
+        }
+
+        .blackboard { width: 60%; height: 48px; background-color: #e8def8; color: #1d192b; text-align: center; line-height: 48px; margin: 0 auto 20px auto; border-radius: 9999px; font-weight: 500; letter-spacing: 8px; box-shadow: none; transition: margin 0.3s; font-size: 16px;}
+        .instruction-tip { font-size: 14px; color: #44474e; margin-bottom: 30px; background: #fdfaf6; padding: 12px 20px; border-radius: 16px; border: 1px solid #e1e2e8; }
+        .instruction-tip b { color: #b3261e; font-weight: 500;}
+
+        #classroom-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        #classroom { display: flex; justify-content: center; gap: 30px; position: relative; margin: 0 80px; }
+
+        .door { position: absolute; top: 0; width: 44px; height: 110px; background: #d7e2ff; border: none; display: flex; align-items: center; justify-content: center; color: #001a41; font-weight: 500; writing-mode: vertical-rl; border-radius: 4px; box-shadow: none; font-size: 18px; letter-spacing: 5px; }
+        .door.left { left: -75px; } .door.right { right: -75px; }
+        
+        .group { display: flex; flex-direction: column; gap: 16px; padding: 16px; background: #fdfdfd; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+        .subgroup { display: grid; gap: 10px; padding: 10px; border-radius: 8px; background-color: transparent; }
+        
+        .seat { width: 70px; height: 44px; border: 2px dashed #c2c7cf; border-radius: 6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background-color: #f8f9fa; cursor: pointer; position: relative; transition: 0.2s;}
+        .seat:hover { border-color: #8e9196; }
+        .seat.deleted { border: 1px dashed #e1e2e8; background-color: transparent; opacity: 0.3; }
+        .seat.deleted:hover { border-color: #285e49; opacity: 0.8; background-color: #e8f5e9; }
+        .seat.deleted::after { content: "双击恢复"; font-size: 11px; color: #285e49; font-weight: bold; display: none; }
+        .seat.deleted:hover::after { display: block; }
+
+        /* 底部控制区 */
+        .bottom-area { width: 100%; margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; border-top: 1px solid #e1e2e8; padding-top: 30px; position: relative; }
+        .controls-row { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; width: 100%; align-items: center; }
+        .controls-row button { height: 44px; padding: 0 24px; font-size: 14px; font-weight: 500; border: none; border-radius: 9999px; cursor: pointer; transition: all 0.2s cubic-bezier(0.2, 0, 0, 1); box-shadow: 0 1px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        .controls-row button:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); transform: translateY(-1px); }
+        
+        /* 1. 基础操作类 (浅灰色 Tonal) */
+        .btn-random, .btn-rotate, .btn-mirror { background-color: #f0f2f5; color: #1a1c1e; }
+        .btn-random:hover, .btn-rotate:hover, .btn-mirror:hover { background-color: #e1e2e8; }
+        
+        /* 2. 读取/保存记录类 (蓝色 Tonal) */
+        .btn-load { background-color: #d3e4ff; color: #001c3b; }
+        .btn-load:hover { background-color: #adc6ff; }
+        .btn-save { background-color: #c2e7ff; color: #001d35; }
+        .btn-save:hover { background-color: #a4d2ff; }
+        
+        /* 3. 导入/导出文件类 (紫色 Tonal) */
+        .btn-export { background-color: #e8def8; color: #1d192b; }
+        .btn-export:hover { background-color: #d0bcff; }
+        .btn-import-label { height: 44px; padding: 0 24px; font-size: 14px; font-weight: 500; border-radius: 9999px; cursor: pointer; background-color: #e8def8; color: #1d192b; box-shadow: 0 1px 4px rgba(0,0,0,0.1); transition: all 0.2s cubic-bezier(0.2, 0, 0, 1); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        .btn-import-label:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); transform: translateY(-1px); background-color: #d0bcff; }
+        
+        /* 4. 删除/重置操作类 (红色 Tonal) */
+        .btn-toggle-boxes, .btn-reset { background-color: #ffdad6; color: #410002; }
+        .btn-toggle-boxes:hover, .btn-reset:hover { background-color: #ffb4ab; }
+
+        .save-group { display: flex; align-items: center; background-color: #f0fdf4; padding: 0 6px 0 16px; border-radius: 9999px; border: 1px solid #cce8d0; height: 44px; box-sizing: border-box; }
+        .save-group select { padding: 4px 8px; font-size: 14px; border: none; background: transparent; border-radius: 9999px; margin-right: 8px; outline: none; font-weight: 500; color: #1a6c30;}
+
+        .github-sync-area { width: 100%; max-width: 800px; background-color: #f0f2f5; color: #1a1c1e; padding: 24px; border-radius: 20px; display: flex; flex-direction: column; gap: 16px; align-items: center; margin-top: 20px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);}
+        .github-sync-row { display: flex; gap: 12px; align-items: center; width: 100%; justify-content: center; flex-wrap: wrap; }
+        .github-sync-area input[type="password"] { padding: 12px 20px; border-radius: 9999px; border: none; background: #ffffff; color: #1a1c1e; width: 320px; max-width: 90%; font-size: 14px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); outline: none;}
+        .github-sync-area input[type="password"]:focus { box-shadow: 0 0 0 2px #0061a4 inset;}
+        .btn-github-save { background-color: #1a6c30; padding: 12px 20px; border-radius: 9999px; border: none; color: white; cursor: pointer; font-weight: 500; font-size: 14px; transition: 0.2s;} .btn-github-save:hover { background-color: #115022;}
+        .btn-github-load { background-color: #0061a4; padding: 12px 20px; border-radius: 9999px; border: none; color: white; cursor: pointer; font-weight: 500; font-size: 14px; transition: 0.2s;} .btn-github-load:hover { background-color: #004d84;}
+
+        .rect-tool { position: absolute; right: 0; top: 20px; padding: 12px 20px; background: #e8def8; color: #1d192b; font-weight: 500; font-size: 14px; border-radius: 9999px; cursor: grab; border: none; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s; touch-action: none; }
+        .rect-tool:active { cursor: grabbing; transform: scale(0.95); }
+
+        /* 学生小块 */
+        .student { width: 62px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: grab; font-weight: bold; font-size: 14px; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s, box-shadow 0.2s; z-index: 2; touch-action: none; border: none; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .student:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        .student.boy { background-color: #5bb2f5; color: #ffffff; border: 1px solid #3d9af2;}
+        .student.girl { background-color: #ec5d96; color: #ffffff; border: 1px solid #dd397a;}
+        .student:active { cursor: grabbing; }
+        .dragging { opacity: 0.6; transform: scale(0.95); }
+
+        .custom-box { position: absolute; border: 4px dashed; pointer-events: none; z-index: 5; border-radius: 8px; transition: border-color 0.2s; }
+        .custom-box .handle { position: absolute; background: #fff; border: 2px solid; border-radius: 50%; pointer-events: auto; z-index: 10; touch-action: none; }
+        .custom-box .handle.top { top: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
+        .custom-box .handle.bottom { bottom: -8px; left: 50%; width: 12px; height: 12px; transform: translateX(-50%); cursor: ns-resize; }
+        .custom-box .handle.left { top: 50%; left: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
+        .custom-box .handle.right { top: 50%; right: -8px; width: 12px; height: 12px; transform: translateY(-50%); cursor: ew-resize; }
+        .custom-box .close-btn { position: absolute; top: -14px; right: -14px; width: 26px; height: 26px; background: #ba1a1a; color: white; border-radius: 50%; text-align: center; line-height: 26px; cursor: pointer; pointer-events: auto; font-size: 14px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 10; border: none;}
+        .custom-box .close-btn:hover { background: #93000a; }
+        .custom-box .move-btn { position: absolute; top: -14px; left: -14px; width: 26px; height: 26px; background: #0061a4; color: white; border-radius: 50%; text-align: center; line-height: 26px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 10; touch-action: none; border: none;}
+        .custom-box .move-btn:hover { background: #004d84; }
+
+        /* =========================================
+           完美修复：手机端适配（教室悬浮，名单自由滑动）
+           ========================================= */
+        @media (max-width: 800px) {
+            .main-container { 
+                display: flex; 
+                flex-direction: column; 
+                gap: 16px;
+            }
+            .left-panel { display: contents; } 
+            
+            .setup-box { order: 1; width: 100%; box-sizing: border-box; padding: 20px;}
+            
+            .right-panel { 
+                order: 2; 
+                width: 100%; 
+                box-sizing: border-box; 
+                position: sticky; 
+                top: 0; 
+                z-index: 1000; 
+                max-height: 55vh; 
+                overflow-y: auto; 
+                background: #fff; 
+                border-bottom: none; 
+                box-shadow: 0 8px 30px rgba(0,0,0,0.12); 
+                margin-bottom: 20px;
+                padding: 16px;
+                border-radius: 0 0 24px 24px;
+            }
+            
+            .list-box { 
+                order: 3; 
+                width: 100%; 
+                box-sizing: border-box; 
+                padding: 20px;
+            }
+            .pool-col {
+                height: auto;
+                overflow-y: visible;
+            }
+            
+            .bottom-area { margin-top: 24px; }
+            .rect-tool { position: relative; right: auto; top: auto; margin-top: 15px; display: inline-block; }
+        }
+    </style>
 </head>
 <body>
 
