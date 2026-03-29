@@ -118,6 +118,14 @@
             "vote.html": { icon: "🗳️", title: "班级投票系统", desc: "支持单选多选、云端保存配置与记录的实时投票工具" }
         };
 
+        // 📌 固定排序：定义卡片的显示顺序，数字越小越靠前，未列出的工具排最后
+        const sortOrder = {
+            "classseats.html": 1,
+            "classjournal.html": 2,
+            "exceltrans.html": 3,
+            "vote.html": 4
+        };
+
         const container = document.getElementById('toolsContainer');
         const statusMessage = document.getElementById('statusMessage');
         const statusText = document.getElementById('statusText');
@@ -188,17 +196,19 @@
                     return { url: file.name, icon, title, desc };
                 }));
 
-                // 4. 成功后隐藏状态栏，渲染卡片
+                // 4. 按固定顺序排序后渲染
+                cardsData.sort((a, b) => (sortOrder[a.url] || 999) - (sortOrder[b.url] || 999));
                 statusMessage.style.display = 'none';
                 renderCards(cardsData);
 
             } catch (error) {
                 console.warn("自动拉取失败，启用保底渲染模式:", error.message);
                 
-                // 启用保底渲染：转换预设好的四大核心工具并呈现
+                // 启用保底渲染：转换预设好的四大核心工具并按固定顺序呈现
                 const fallbackData = Object.keys(fallbackTools).map(url => {
                     return { url: url, ...fallbackTools[url] };
                 });
+                fallbackData.sort((a, b) => (sortOrder[a.url] || 999) - (sortOrder[b.url] || 999));
                 renderCards(fallbackData);
 
                 // 直接隐藏状态栏，静默降级
