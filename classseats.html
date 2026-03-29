@@ -197,7 +197,35 @@
         /* =========================================
            完美修复：手机端适配（教室悬浮，名单自由滑动）
            ========================================= */
+        /* === Token 弹窗样式 === */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 500px; color: #333; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+        .modal-close { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 28px; line-height: 1; color: #666; transition: color 0.2s; user-select: none; }
+        .modal-close:hover { color: #1a1c1e; }
+        .hidden { display: none !important; }
+
+        .top-right-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffffff;
+            border: 1px solid #e1e2e8;
+            font-size: 22px;
+            cursor: pointer;
+            color: #444746;
+            z-index: 1000;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .top-right-btn:hover { background: #f0f2f5; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
         @media (max-width: 800px) {
+            .top-right-btn { top: 10px; right: 10px; }
             .main-container { 
                 display: flex; 
                 flex-direction: column; 
@@ -262,6 +290,8 @@
     </style>
 </head>
 <body>
+
+<button class="top-right-btn" onclick="document.getElementById('tokenModal').classList.remove('hidden')">☰</button>
 
 <h1>班级座位手动排列系统</h1>
 
@@ -355,19 +385,29 @@
                 <input type="file" id="file-import-record" accept=".json" style="display:none">
             </div>
 
-            <div class="github-sync-area">
-                <div style="font-size: 14px; font-weight: bold;">☁️ 云端同步 (私密保存，仅限帅哥使用)</div>
-                <div class="github-sync-row">
-                    <input type="password" id="github-token" placeholder="输入云端同步 Token (私钥)" onchange="saveTokenLocally()">
-                    <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 从云端读取</button>
-                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 保存至云端</button>
-                </div>
-                <div style="font-size: 12px; color: #aaa;">Token 仅保存在你当前电脑本地，数据将安全加密传输至私有仓库。</div>
-            </div>
+
 
             <div id="rect-tool" class="rect-tool" draggable="true" ondragstart="dragStart(event)">
                 🔲 拖拽添加小组框
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="tokenModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="modal-close" onclick="document.getElementById('tokenModal').classList.add('hidden')">&times;</span>
+        <div style="font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #1a1c1e;">⚙️ 云端同步配置</div>
+        <div class="github-sync-area" style="margin-top:0; padding:0; background:transparent; box-shadow:none;">
+            <div style="font-size: 14px; font-weight: 500; margin-bottom: 12px; color: #0061a4; text-align: center;">私密保存，仅限帅哥使用</div>
+            <div class="github-sync-row" style="flex-direction: column; gap: 15px;">
+                <input type="password" id="github-token" placeholder="输入访问令牌 (Token)" onchange="saveTokenLocally()" style="width: 100%; box-sizing: border-box; max-width: none; border: 1px solid #c2c7cf;">
+                <div style="display:flex; gap:10px; width:100%;">
+                    <button class="btn-github-load" style="flex:1;" onclick="loadFromGitHubCloud()">☁️ 从云端读取</button>
+                    <button class="btn-github-save" style="flex:1;" onclick="saveToGitHubCloud()">☁️ 保存至云端</button>
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #8e9196; margin-top:20px; text-align:center;">Token 仅保存在你当前电脑本地，数据将安全加密传输至私有仓库。</div>
         </div>
     </div>
 </div>

@@ -242,6 +242,28 @@
             box-shadow: 0 4px 12px rgba(186, 26, 26, 0.2);
         }
 
+        .btn-push {
+            margin-top: 8px;
+            background-color: #1a6c30; 
+            color: white;
+            padding: 10px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 9999px; 
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-push:hover {
+            background-color: #115022;
+            box-shadow: 0 4px 12px rgba(26, 108, 48, 0.2);
+        }
+
         /* 右侧书写区 */
         .header-info {
             display: flex;
@@ -412,10 +434,38 @@
         ::-webkit-scrollbar-thumb { background: #c2c7cf; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #8e9196; }
 
+        /* === Token 弹窗样式 === */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; color: #333; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+        .modal-close { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 28px; line-height: 1; color: #666; transition: color 0.2s; user-select: none; }
+        .modal-close:hover { color: #1a1c1e; }
+        .hidden { display: none !important; }
+
+        .top-left-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #ffffff;
+            border: 1px solid #e1e2e8;
+            font-size: 22px;
+            cursor: pointer;
+            color: #444746;
+            z-index: 1000;
+            padding: 8px 12px;
+            border-radius: 12px;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .top-left-btn:hover { background: #f0f2f5; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
         /* ========================================= */
         /* 📱 手机端/小屏幕自适应适配 */
         /* ========================================= */
         @media screen and (max-width: 900px) {
+            .top-left-btn { top: 10px; left: 10px; }
             body {
                 height: auto;
                 min-height: 100vh;
@@ -479,6 +529,8 @@
 </head>
 <body>
 
+    <button class="top-left-btn" onclick="document.getElementById('tokenModal').classList.remove('hidden')">☰</button>
+
     <div class="notebook">
         <div class="binding" id="binding"></div>
 
@@ -493,14 +545,7 @@
             <div class="history-list" id="historyList">
                 </div>
 
-            <div class="github-settings">
-                <strong>⚙️ 云端私有库同步配置</strong>
-                <label style="margin-top:8px;">访问令牌 (Token):</label>
-                <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-                <label>文件保存路径 (可区分不同班级):</label>
-                <input type="text" id="ghPath" placeholder="六4.json" value="六4.json">
-                <button class="btn-pull" id="btnPull">⬇️ 强制从云端拉取 (覆盖本地)</button>
-            </div>
+
         </div>
 
         <div class="page right">
@@ -534,10 +579,29 @@
             
             <div class="actions">
                 <div style="display:flex; align-items:center;">
-                    <button class="action-btn btn-save" id="btnSave">🔄 保存并同步 (智能合并)</button>
+                    <button class="action-btn btn-save" id="btnSave">🔄 保存</button>
                     <span class="status-msg" id="statusMsg"></span>
                 </div>
-                <button class="action-btn btn-export" id="btnExport">导出为 TXT</button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="action-btn btn-export" onclick="document.getElementById('fileImportTxt').click()">读取本地 TXT</button>
+                    <input type="file" id="fileImportTxt" accept=".txt" style="display:none">
+                    <button class="action-btn btn-export" id="btnExport">导出为 TXT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tokenModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('tokenModal').classList.add('hidden')">&times;</span>
+            <div class="github-settings" style="margin-top:0; padding:0; background:transparent; border-radius:0;">
+                <strong style="font-size: 18px; color: #1a1c1e; margin-bottom: 15px; display: block;">⚙️ 云端私有库同步配置</strong>
+                <label style="margin-top:8px;">访问令牌 (Token):</label>
+                <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                <label>文件保存路径 (可区分不同班级):</label>
+                <input type="text" id="ghPath" placeholder="六4.json" value="六4.json">
+                <button class="btn-pull" id="btnPull" style="margin-top: 20px;">⬇️ 强制从云端拉取 (覆盖本地)</button>
+                <button class="btn-push" id="btnPushCloud" style="margin-top: 10px;">☁️ 保存至云端</button>
             </div>
         </div>
     </div>
@@ -874,7 +938,7 @@
         });
 
         // --- 核心优化：保存到云端逻辑 (先读取 -> 智能合并 -> 再推送，无文件则创建) ---
-        document.getElementById('btnSave').addEventListener('click', async () => {
+        document.getElementById('btnPushCloud').addEventListener('click', async () => {
             triggerAutoSave();
             saveGitHubConfig();
 
@@ -886,7 +950,7 @@
             }
 
             showStatus('正在请求云端数据...');
-            document.getElementById('btnSave').disabled = true;
+            document.getElementById('btnPushCloud').disabled = true;
 
             const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURIComponent(path)}`;
             const headers = {
@@ -964,8 +1028,14 @@
                 alert('同步失败: ' + error.message);
                 showStatus('同步失败');
             } finally {
-                document.getElementById('btnSave').disabled = false;
+                document.getElementById('btnPushCloud').disabled = false;
             }
+        });
+
+        // 纯本地保存功能
+        document.getElementById('btnSave').addEventListener('click', () => {
+            triggerAutoSave();
+            showStatus('✅ 已保存到本地记录');
         });
 
         document.getElementById('btnExport').addEventListener('click', () => {
@@ -982,6 +1052,28 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('fileImportTxt').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const goodMatch = text.match(/😃 良好表现与事务:\n([\s\S]*?)(?=\n\n🙄 需改进与糟心事:)/);
+                const badMatch = text.match(/🙄 需改进与糟心事:\n([\s\S]*)$/);
+                
+                if (goodMatch && badMatch) {
+                    editorGood.value = goodMatch[1].trim() === '' ? '• ' : goodMatch[1];
+                    editorBad.value = badMatch[1].trim() === '' ? '• ' : badMatch[1];
+                    triggerAutoSave();
+                    alert("✅ 成功从 TXT 导入内容到当前日期！");
+                } else {
+                    alert("❌ 导入失败：文件格式不符合班级纪要的标准导出格式！");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; 
         });
 
         init();
