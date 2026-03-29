@@ -337,14 +337,14 @@
                 <div style="font-size: 14px; font-weight: bold;">☁️ 云端同步 (私密保存，仅限帅哥使用)</div>
                 <div class="github-sync-row">
                     <input type="password" id="github-token" placeholder="输入云端同步 Token (私钥)" onchange="saveTokenLocally()">
-                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 一键保存至云端</button>
                     <button class="btn-github-load" onclick="loadFromGitHubCloud()">☁️ 从云端读取</button>
+                    <button class="btn-github-save" onclick="saveToGitHubCloud()">☁️ 保存至云端</button>
                 </div>
                 <div style="font-size: 12px; color: #aaa;">Token 仅保存在你当前电脑本地，数据将安全加密传输至私有仓库。</div>
             </div>
 
             <div id="rect-tool" class="rect-tool" draggable="true" ondragstart="dragStart(event)">
-                🔲 拖拽添加组框
+                🔲 拖拽添加小组框
             </div>
         </div>
     </div>
@@ -492,7 +492,7 @@
         } catch (e) {
             alert('网络错误：无法连接到云端。如果你在国内，通常是因为网络拦截了接口 (api.github.com)，建议开启加速器后重试。\n详细报错：' + e.message);
         } finally {
-            document.querySelector('.btn-github-save').innerText = '☁️ 一键保存至云端';
+            document.querySelector('.btn-github-save').innerText = '☁️ 保存至云端';
         }
     }
 
