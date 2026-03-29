@@ -122,6 +122,7 @@
         #classroom-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
         #classroom { display: flex; justify-content: center; gap: 30px; position: relative; margin: 0 80px; }
 
+
         .door { position: absolute; top: 0; width: 44px; height: 110px; background: #d7e2ff; border: none; display: flex; align-items: center; justify-content: center; color: #001a41; font-weight: 500; writing-mode: vertical-rl; border-radius: 4px; box-shadow: none; font-size: 18px; letter-spacing: 5px; }
         .door.left { left: -75px; } .door.right { right: -75px; }
         
@@ -214,13 +215,34 @@
                 top: 0; 
                 z-index: 1000; 
                 max-height: 55vh; 
-                overflow-y: auto; 
+                overflow: auto; 
                 background: #fff; 
                 border-bottom: none; 
                 box-shadow: 0 8px 30px rgba(0,0,0,0.12); 
                 margin-bottom: 20px;
-                padding: 16px;
+                padding: 0;
                 border-radius: 0 0 24px 24px;
+                display: block;
+            }
+            .right-panel > .instruction-tip {
+                padding: 10px 16px;
+                margin: 12px 16px;
+            }
+            #classroom-wrapper {
+                min-width: fit-content;
+                padding: 16px 24px;
+                box-sizing: border-box;
+                align-items: flex-start;
+            }
+            .right-panel .blackboard {
+                min-width: 200px;
+                width: 60%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #classroom {
+                justify-content: flex-start;
+                margin: 0 60px;
             }
             
             .list-box { 
@@ -234,7 +256,7 @@
                 overflow-y: visible;
             }
             
-            .bottom-area { margin-top: 24px; }
+            .bottom-area { margin-top: 24px; min-width: fit-content; padding-left: 24px; padding-right: 24px; }
             .rect-tool { position: relative; right: auto; top: auto; margin-top: 15px; display: inline-block; }
         }
     </style>
