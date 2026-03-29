@@ -336,22 +336,13 @@
             position: relative;
             background: #ffffff;
             border-radius: 12px;
-            padding: 0 20px 0 60px; /* 左侧留出红线空间 */
+            padding: 0 20px 0 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             overflow: hidden;
             border: 1px solid var(--line-color);
         }
 
-        /* 经典的笔记本边距线 */
-        .editor-section::before {
-            content: "";
-            position: absolute;
-            left: 45px;
-            top: 0;
-            bottom: 0;
-            width: 1px;
-            background-color: var(--margin-line);
-        }
+
 
         .section-emoji {
             font-size: 26px;
