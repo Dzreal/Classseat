@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>班级管理工具箱</title>
+    <!-- 优化：提前连接 GitHub API 域名，加速后续的 DNS 解析和 TLS 握手时间 -->
+    <link rel="preconnect" href="https://api.github.com">
     <style>
         body {
             font-family: Roboto, 'Segoe UI', "Microsoft YaHei", sans-serif;
@@ -150,6 +152,14 @@
 
         async function loadTools() {
             try {
+                // 优化：尝试读取短期会话缓存。用户从子页面返回时可实现瞬间秒开，且不消耗宝贵的 GitHub API 次数
+                const cachedData = sessionStorage.getItem('class_tools_cache');
+                if (cachedData) {
+                    statusMessage.style.display = 'none';
+                    renderCards(JSON.parse(cachedData));
+                    return;
+                }
+
                 // 1. 请求 GitHub API (注意去掉了末尾的斜杠，这样更稳定)
                 const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
                 const res = await fetch(apiUrl);
@@ -184,12 +194,13 @@
                         const htmlRes = await fetch(file.name);
                         if (htmlRes.ok) {
                             const htmlText = await htmlRes.text();
-                            const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-                            if (doc.title) title = doc.title;
-                            const metaDesc = doc.querySelector('meta[name="description"]');
-                            if (metaDesc && metaDesc.content) desc = metaDesc.content;
-                            const metaIcon = doc.querySelector('meta[name="icon"]');
-                            if (metaIcon && metaIcon.content) icon = metaIcon.content;
+                            // 优化：采用正则而非 DOMParser 解析整个庞大文档，大幅降低手机端的 CPU 解析压力
+                            const titleMatch = htmlText.match(/<title>(.*?)<\/title>/i);
+                            if (titleMatch) title = titleMatch[1].trim();
+                            const descMatch = htmlText.match(/<meta\s+name="description"\s+content="([^"]*)"/i);
+                            if (descMatch) desc = descMatch[1];
+                            const iconMatch = htmlText.match(/<meta\s+name="icon"\s+content="([^"]*)"/i);
+                            if (iconMatch) icon = iconMatch[1];
                         }
                     } catch (e) { /* 忽略抓取失败，使用默认值 */ }
 
@@ -200,6 +211,9 @@
                 cardsData.sort((a, b) => (sortOrder[a.url] || 999) - (sortOrder[b.url] || 999));
                 statusMessage.style.display = 'none';
                 renderCards(cardsData);
+
+                // 优化：渲染成功后存入会话缓存，直到用户彻底关闭该页签前无需重试
+                sessionStorage.setItem('class_tools_cache', JSON.stringify(cardsData));
 
             } catch (error) {
                 console.warn("自动拉取失败，启用保底渲染模式:", error.message);
