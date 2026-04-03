@@ -467,63 +467,23 @@
         @media screen and (max-width: 900px) {
             .top-left-btn { top: 10px; left: 10px; }
             body {
-                height: auto;
-                min-height: 100vh;
-                padding: 16px;
-                box-sizing: border-box;
+                /* 允许页面在手机上可以横向滑动，像拨动地图一样查看这本摊开的笔记本 */
+                overflow-x: auto;
                 align-items: flex-start; 
+                padding: 16px;
+                justify-content: flex-start;
             }
             .notebook {
-                width: 100%;
-                min-width: unset;
-                height: auto;
-                min-height: unset;
-                max-height: unset;
-                flex-direction: column;
+                /* 强制保持左右双页展开形态！不使用拆分上下的错位布局 */
+                width: 800px;
+                min-width: 800px; 
+                height: 85vh;
+                min-height: 600px;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             }
-            .page { padding: 24px; }
-            .page.left {
-                border-right: none;
-                border-bottom: 1px solid var(--line-color);
-                max-height: 45vh;
-                overflow-y: auto;
-            }
-            .page.right {
-                border-left: none;
-                min-height: 60vh;
-            }
-            .header-info {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 16px;
-            }
-            .main-title {
-                font-size: 24px;
-            }
-            textarea.editor {
-                font-size: 15px;
-            }
-            .actions {
-                flex-direction: column;
-                gap: 16px;
-                align-items: stretch;
-            }
-            .actions > div {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                width: 100%;
-            }
-            .status-msg {
-                margin-left: 0;
-                text-align: center;
-            }
-            button.action-btn {
-                width: 100%;
-                padding: 14px; 
-                justify-content: center;
-            }
+            .page { padding: 20px 24px; }
+            .main-title { font-size: 24px; }
+            textarea.editor { font-size: 16px; }
         }
     </style>
 </head>
@@ -579,7 +539,7 @@
             
             <div class="actions">
                 <div style="display:flex; align-items:center;">
-                    <button class="action-btn btn-save" id="btnSave">🔄 保存</button>
+                    <button class="action-btn btn-save" id="btnSave">保存</button>
                     <span class="status-msg" id="statusMsg"></span>
                 </div>
                 <div style="display: flex; gap: 12px;">
