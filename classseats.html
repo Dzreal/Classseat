@@ -944,8 +944,11 @@
                 confirmSeatInput(this);
             } else if (ev.key === 'Tab') {
                 ev.preventDefault();
-                const nextSeat = findNextSeat(seat);
-                confirmSeatInput(this);
+                let currentInput = this;
+                // 先确认当前输入，这样如果发生人员移动，原座位会立刻变为空位
+                confirmSeatInput(currentInput);
+                
+                const nextSeat = findNextSeat(seat, ev.shiftKey);
                 if (nextSeat) {
                     setTimeout(() => createSeatInput(nextSeat), 50);
                 }
@@ -1010,11 +1013,127 @@
         return null;
     }
 
-    function findNextSeat(currentSeat) {
+    function findNextSeat(currentSeat, isReverse = false) {
         const allSeats = Array.from(document.querySelectorAll('.seat:not(.deleted)'));
-        const currentIndex = allSeats.indexOf(currentSeat);
-        if (currentIndex !== -1 && currentIndex < allSeats.length - 1) {
-            return allSeats[currentIndex + 1];
+        
+        // 1. 完全基于“视觉矩形框”进行分组（所见即所得）
+        // 抛弃底层绑定的记录，彻底解决由于读取历史记录导致的大框只绑定了少数座位的问题
+        let visualBoxes = customBoxes.map(b => b.el.getBoundingClientRect());
+        let boxMap = new Map();
+        let unboxedSeats = [];
+
+        allSeats.forEach(seat => {
+            let rect = seat.getBoundingClientRect();
+            let centerX = rect.left + rect.width / 2;
+            let centerY = rect.top + rect.height / 2;
+            
+            // 倒序遍历，保证最上层（最新）的框优先包裹座位
+            let foundBoxIdx = -1;
+            for (let i = visualBoxes.length - 1; i >= 0; i--) {
+                let vBox = visualBoxes[i];
+                if (centerX >= vBox.left && centerX <= vBox.right && centerY >= vBox.top && centerY <= vBox.bottom) {
+                    foundBoxIdx = i;
+                    break;
+                }
+            }
+            
+            if (foundBoxIdx !== -1) {
+                let boxObj = customBoxes[foundBoxIdx];
+                if (!boxMap.has(boxObj)) boxMap.set(boxObj, []);
+                boxMap.get(boxObj).push(seat);
+            } else {
+                unboxedSeats.push(seat);
+            }
+        });
+
+        let groups = [];
+        for (let seats of boxMap.values()) {
+            if (seats.length > 0) groups.push({ seats: seats });
+        }
+
+        // 没有被小组框包裹的座位，按照默认的 subgroup 进行分组（维持没框时 4个4个 的跳转节奏）
+        let unboxedGroupMap = new Map();
+        unboxedSeats.forEach(seat => {
+            let sub = seat.closest('.subgroup');
+            if (!unboxedGroupMap.has(sub)) unboxedGroupMap.set(sub, []);
+            unboxedGroupMap.get(sub).push(seat);
+        });
+        
+        for (let seats of unboxedGroupMap.values()) {
+            if (seats.length > 0) groups.push({ seats: seats });
+        }
+
+        // 2. 保证同一个组内的座位按照行列顺序（从左到右，从上到下）排序
+        groups.forEach(g => {
+            g.seats.sort((a, b) => {
+                let rA = parseInt(a.dataset.row), rB = parseInt(b.dataset.row);
+                if (rA !== rB) return rA - rB;
+                return parseInt(a.dataset.col) - parseInt(b.dataset.col);
+            });
+        });
+
+        // 3. 宏观组与组之间，按照各组最左上角座位的物理位置（行、列）进行横向优先（Row-Major）排序
+        // 这样可以确保录入时是从左到右填完一整排，再往下填，而不是顺着 HTML 的列往下跳
+        groups.sort((a, b) => {
+            let aMinRow = Math.min(...a.seats.map(s => parseInt(s.dataset.row)));
+            let aMinCol = Math.min(...a.seats.map(s => parseInt(s.dataset.col)));
+            let bMinRow = Math.min(...b.seats.map(s => parseInt(s.dataset.row)));
+            let bMinCol = Math.min(...b.seats.map(s => parseInt(s.dataset.col)));
+            
+            if (aMinRow !== bMinRow) return aMinRow - bMinRow;
+            return aMinCol - bMinCol;
+        });
+
+        // 拼接成最终的全局 Tab 切换顺序
+        let orderedSeats = [];
+        groups.forEach(g => orderedSeats.push(...g.seats));
+
+        let currentGroup = groups.find(g => g.seats.includes(currentSeat));
+        const currentIndex = orderedSeats.indexOf(currentSeat);
+        
+        if (currentIndex !== -1) {
+            if (isReverse) {
+                // 反向寻找 (Shift + Tab)：直接退回上一个座位
+                if (currentIndex > 0) {
+                    return orderedSeats[currentIndex - 1];
+                }
+            } else {
+                // 正向寻找 (Tab)：
+                // 1. 首先在【当前小组】内进行循环寻找空位（先往后找，再绕回开头找）
+                // 保证连续按 Tab 可以顺畅地在组内的多个空位之间循环切换
+                if (currentGroup) {
+                    let groupSeats = currentGroup.seats;
+                    let localIndex = groupSeats.indexOf(currentSeat);
+                    
+                    // 先从当前位置往后找
+                    for (let i = localIndex + 1; i < groupSeats.length; i++) {
+                        let s = groupSeats[i];
+                        let hasStudent = Array.from(s.children).some(child => child.classList.contains('student'));
+                        if (!hasStudent) return s;
+                    }
+                    
+                    // 如果后面没有空位，绕回到小组开头找（直到当前位置）
+                    for (let i = 0; i < localIndex; i++) {
+                        let s = groupSeats[i];
+                        let hasStudent = Array.from(s.children).some(child => child.classList.contains('student'));
+                        if (!hasStudent) return s;
+                    }
+                }
+                
+                // 2. 如果当前小组所有位置都填满了，再往后（全局）寻找下一个空位
+                for (let i = currentIndex + 1; i < orderedSeats.length; i++) {
+                    let seat = orderedSeats[i];
+                    let hasStudent = Array.from(seat.children).some(child => child.classList.contains('student'));
+                    if (!hasStudent) {
+                        return seat;
+                    }
+                }
+                
+                // 3. 如果后面没有任何空位了，退而求其次返回全局的下一个座位
+                if (currentIndex < orderedSeats.length - 1) {
+                    return orderedSeats[currentIndex + 1];
+                }
+            }
         }
         return null;
     }
@@ -1458,7 +1577,7 @@
             colorIndexTracker++;
         }
         boxContainer.style.borderColor = color;
-        boxContainer.style.backgroundColor = color + '1a'; 
+        boxContainer.style.backgroundColor = 'transparent'; 
 
         let moveBtn = document.createElement('div');
         moveBtn.className = 'move-btn';
