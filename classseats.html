@@ -112,15 +112,37 @@
 
         /* 右侧：教室区域 */
         .right-panel {
-            flex: 1; display: flex; flex-direction: column; align-items: center; background: #ffffff; padding: 30px; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); position: relative; overflow-x: auto; border: none;
+            flex: 1; 
+            display: block; /* 改为 block 以便子元素通过 margin: auto 居中并支持溢出滚动 */
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 24px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+            position: relative; 
+            overflow-x: auto; 
+            border: none;
+            text-align: center;
         }
 
         .blackboard { width: 60%; height: 48px; background-color: #e8def8; color: #1d192b; text-align: center; line-height: 48px; margin: 0 auto 20px auto; border-radius: 9999px; font-weight: 500; letter-spacing: 8px; box-shadow: none; transition: margin 0.3s; font-size: 16px;}
         .instruction-tip { font-size: 14px; color: #44474e; margin-bottom: 30px; background: #fdfaf6; padding: 12px 20px; border-radius: 16px; border: 1px solid #e1e2e8; }
         .instruction-tip b { color: #b3261e; font-weight: 500;}
 
-        #classroom-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        #classroom { display: flex; justify-content: center; gap: 30px; position: relative; margin: 0 80px; }
+        #classroom-wrapper { 
+            display: inline-flex; /* 改为 inline-flex 配合父级 text-align: center 居中 */
+            flex-direction: column; 
+            align-items: center; 
+            min-width: 100%; 
+        }
+        #classroom { 
+            display: flex; 
+            justify-content: flex-start; /* 内部左对齐，防止溢出时左侧无法滚动 */
+            gap: 30px; 
+            position: relative; 
+            margin: 0 auto; /* 居中 */
+            padding: 0 80px; /* 预留门的位置 */
+            width: fit-content;
+        }
 
 
         .door { position: absolute; top: 0; width: 44px; height: 110px; background: #d7e2ff; border: none; display: flex; align-items: center; justify-content: center; color: #001a41; font-weight: 500; writing-mode: vertical-rl; border-radius: 4px; box-shadow: none; font-size: 18px; letter-spacing: 5px; }
@@ -193,6 +215,24 @@
         .custom-box .close-btn:hover { background: #93000a; }
         .custom-box .move-btn { position: absolute; top: -14px; left: -14px; width: 26px; height: 26px; background: #0061a4; color: white; border-radius: 50%; text-align: center; line-height: 26px; cursor: move; pointer-events: auto; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 10; touch-action: none; border: none;}
         .custom-box .move-btn:hover { background: #004d84; }
+
+        /* 手动输入模式下的输入框样式 */
+        .seat-input {
+            width: 90%;
+            height: 32px;
+            border: 2px solid #0061a4;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            outline: none;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .btn-manual { background-color: #f1f4f8; color: #001d35; border: 1px solid #c2c7cf !important; }
+        .btn-manual.active { background-color: #0061a4 !important; color: white !important; border-color: #0061a4 !important; }
 
         /* =========================================
            完美修复：手机端适配（教室悬浮，名单自由滑动）
@@ -363,6 +403,7 @@
                 <button class="btn-rotate" onclick="rotateGroups()">🔄 S型小组轮换</button>
                 <button class="btn-mirror" id="btn-mirror" onclick="toggleMirror()">🔄 师生视角切换</button>
                 <button class="btn-toggle-boxes" id="btn-toggle-boxes" onclick="toggleBoxes()">🔲 去除所有小组框</button>
+                <button class="btn-manual" id="btn-manual-toggle" onclick="toggleManualMode()">⌨️ 开启手动录入</button>
                 <button class="btn-reset" onclick="resetAll()">名单全体归位</button>
             </div>
 
@@ -428,6 +469,7 @@
     let studentsData = [];
     let isMirrored = false; 
     let isBoxesRemoved = false; 
+    let isManualMode = false; // 手动录入模式标志位
     let savedBoxesData = [];    
     let customBoxes = [];
     let colorIndexTracker = 0;
@@ -845,6 +887,136 @@
             btn.innerHTML = '🔲 去除所有小组框';
             btn.style.backgroundColor = ''; 
         }
+    }
+
+    // === 手动录入模式逻辑 ===
+    function toggleManualMode() {
+        isManualMode = !isManualMode;
+        const btn = document.getElementById('btn-manual-toggle');
+        if (isManualMode) {
+            btn.classList.add('active');
+            btn.innerHTML = '✅ 正在手动录入 (再次点击关闭)';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '⌨️ 开启手动录入';
+        }
+    }
+
+    // 处理座位点击：如果是手动模式，则创建输入框
+    document.addEventListener('click', function(e) {
+        if (!isManualMode) return;
+        
+        const seat = e.target.closest('.seat');
+        if (!seat || seat.classList.contains('deleted')) return;
+        
+        // 如果点击的是已经存在的输入框，不处理
+        if (e.target.classList.contains('seat-input')) return;
+
+        createSeatInput(seat);
+    });
+
+    function createSeatInput(seat) {
+        // 如果已经有输入框在运行，先确认掉它
+        const existingInput = document.querySelector('.seat-input');
+        if (existingInput) {
+            confirmSeatInput(existingInput);
+        }
+
+        // 如果座位上原本有人，先取出来放回池子
+        if (seat.children.length > 0 && !seat.querySelector('.seat-input')) {
+            const stu = seat.children[0];
+            const correctPool = stu.classList.contains('boy') ? poolBoys : poolGirls;
+            correctPool.appendChild(stu);
+            sortPool(correctPool);
+        }
+
+        const currentName = seat.innerText.trim();
+        seat.innerHTML = '';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'seat-input';
+        input.value = (currentName === '双击恢复' || currentName === '') ? '' : currentName;
+        
+        input.onkeydown = function(ev) {
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                confirmSeatInput(this);
+            } else if (ev.key === 'Tab') {
+                ev.preventDefault();
+                const nextSeat = findNextSeat(seat);
+                confirmSeatInput(this);
+                if (nextSeat) {
+                    setTimeout(() => createSeatInput(nextSeat), 50);
+                }
+            }
+        };
+        
+        input.onblur = function() {
+            setTimeout(() => {
+                if (this.parentNode === seat) confirmSeatInput(this);
+            }, 200);
+        };
+
+        seat.appendChild(input);
+        input.focus();
+        if (input.value) input.select();
+    }
+
+    function confirmSeatInput(input) {
+        const seat = input.parentNode;
+        if (!seat) return;
+        
+        const name = input.value.trim();
+        input.remove();
+
+        if (name === '') {
+            updatePoolCounts();
+            return;
+        }
+
+        const studentInfo = studentsData.find(s => s.name === name);
+        let stuDiv = findStudentDivByName(name);
+        
+        if (!stuDiv) {
+            if (studentInfo) {
+                stuDiv = document.createElement('div');
+                stuDiv.id = 'stu-' + studentsData.indexOf(studentInfo);
+                stuDiv.className = 'student ' + (studentInfo.gender === '男' ? 'boy' : 'girl');
+            } else {
+                stuDiv = document.createElement('div');
+                stuDiv.id = 'stu-new-' + Date.now();
+                stuDiv.className = 'student boy';
+            }
+            stuDiv.draggable = true;
+            stuDiv.innerText = name;
+            stuDiv.ondragstart = dragStart;
+            stuDiv.ondragend = dragEnd;
+        }
+
+        // 自动移动：appendChild 会自动将元素从原位置移除
+        seat.appendChild(stuDiv);
+        
+        updatePoolCounts();
+        sortPool(poolBoys);
+        sortPool(poolGirls);
+    }
+
+    function findStudentDivByName(name) {
+        const students = document.querySelectorAll('.student');
+        for (let s of students) {
+            if (s.innerText.trim() === name) return s;
+        }
+        return null;
+    }
+
+    function findNextSeat(currentSeat) {
+        const allSeats = Array.from(document.querySelectorAll('.seat:not(.deleted)'));
+        const currentIndex = allSeats.indexOf(currentSeat);
+        if (currentIndex !== -1 && currentIndex < allSeats.length - 1) {
+            return allSeats[currentIndex + 1];
+        }
+        return null;
     }
 
     function generateLayout() {
